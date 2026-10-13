@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<h1>SkillBridge sign in</h1><p>Use either your username or registered email address.</p><form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Sign in</button></form><p>New user? <a href="{% url 'signup' %}">Create an account</a></p>{% endblock %}
