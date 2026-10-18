@@ -4,6 +4,7 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.decorators import recruiter_required
+from accounts.calendar import build_month_calendar
 from applications.forms import ApplicationStatusForm, InterviewForm
 from applications.models import Interview, JobApplication
 from jobs.forms import JobForm
@@ -127,7 +128,8 @@ def calendar(request):
         application.save(update_fields=["status", "updated_at"])
         messages.success(request, "Interview scheduled.")
         return redirect("recruiter_calendar")
-    return render(request, "employers/calendar.html", _context(request, interviews=interviews, applications=applications, form=form))
+    calendar_data = build_month_calendar(interviews, request.GET.get("month"), request.GET.get("date"))
+    return render(request, "employers/calendar.html", _context(request, interviews=interviews, applications=applications, form=form, calendar=calendar_data))
 
 
 @recruiter_required

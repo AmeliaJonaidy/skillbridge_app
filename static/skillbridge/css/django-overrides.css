@@ -1,4 +1,93 @@
 /* Static Django navigation additions for the supplied SkillBridge UI. */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+    font-family: "Space Grotesk", "Segoe UI", Arial, sans-serif;
+}
+
+body {
+    background: #f4f7fb;
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+    letter-spacing: -.01em;
+}
+
+h1,
+h2,
+h3 {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+a {
+    transition: color .18s ease, background-color .18s ease, border-color .18s ease;
+}
+
+button,
+.button,
+input,
+select,
+textarea {
+    border-radius: 8px;
+}
+
+button,
+.button {
+    transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease;
+}
+
+button:hover,
+.button:hover {
+    transform: translateY(-1px);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 3px solid #315cc533;
+    outline-offset: 2px;
+}
+
+.card,
+.resume-paper,
+.cal-board,
+.auth-panel {
+    border: 1px solid var(--line);
+    box-shadow: 0 10px 24px #17264112;
+}
+
+.card {
+    border-radius: 14px;
+}
+
+.page-head {
+    margin-bottom: 28px;
+}
+
+.page-head .eyebrow,
+.auth-form-wrap .eyebrow,
+.onboard-aside .eyebrow {
+    color: var(--accent);
+}
+
+.nav {
+    gap: 5px;
+}
+
 .nav a {
     border: 0;
     background: transparent;
@@ -6,18 +95,27 @@
     display: flex;
     align-items: center;
     gap: 13px;
-    padding: 13px;
-    color: #7a877e;
+    padding: 12px 14px;
+    color: var(--muted);
     font-size: 13px;
     text-decoration: none;
+    border-radius: 8px;
+    transition: color .18s ease, background-color .18s ease, transform .18s ease;
 }
 .nav a.active, .nav a:hover {
-    background: #edf3e8;
-    color: #255c43;
+    background: #e7eefc;
+    color: var(--accent);
     font-weight: 700;
+}
+.nav a:hover {
+    transform: translateX(2px);
 }
 .nav a .ico {
     flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1;
 }
 .auth-page-django {
     min-height: 100vh;
@@ -58,15 +156,120 @@
 .role-choice li { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
 .role-choice label { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 12px; font-weight: 500; }
 .onboard-compose .errorlist { color: var(--red); font-size: 12px; }
+.auth-form-wrap .errorlist { color: var(--red); font-size: 12px; }
 
 .profile-message {
     margin-bottom: 18px;
     color: var(--green);
 }
 
+.field {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.field input,
+.field select,
+.field textarea,
+.auth-form-wrap input,
+.auth-form-wrap select,
+.auth-form-wrap textarea {
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: inset 0 1px 2px #17264108;
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.auth-form-wrap input:focus,
+.auth-form-wrap select:focus,
+.auth-form-wrap textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px #315cc51a;
+}
+
+.sidebar {
+    background: #ffffff;
+    box-shadow: 6px 0 24px #1726410a;
+}
+
+.sidebar .logo {
+    color: #172641;
+}
+
+.workspace-label {
+    color: #8492a8;
+    letter-spacing: 1.2px;
+}
+
+.topbar {
+    background: #ffffff;
+}
+
+.header-signout {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.header-signout:hover {
+    background: #e7eefc;
+    color: var(--accent);
+}
+
+.page-head h1 {
+    font-size: clamp(28px, 3vw, 38px);
+    letter-spacing: -1.5px;
+}
+
+.page-head .sub {
+    max-width: 640px;
+}
+
+.primary,
+button.primary {
+    box-shadow: 0 5px 12px #274e9e26;
+}
+
+.person {
+    border: 1px solid var(--line);
+}
+
+.topbar {
+    box-shadow: 0 1px 0 var(--line);
+}
+
+.calendar-banner,
+.cal-event {
+    border-radius: 6px;
+}
+
+@media (max-width: 650px) {
+    .card:not(.stat) {
+        padding: 18px;
+    }
+}
+
 /* Auth pages follow the supplied split-screen reference. */
+.auth-login-shell {
+    grid-template-columns: 3fr 1fr;
+}
+.auth-login-shell .auth-story {
+    background: #274e9e;
+    padding: 0;
+}
+.auth-login-shell .auth-story::before,
+.auth-login-shell .auth-story::after {
+    display: none;
+}
+
 @media (min-width: 901px) {
     .auth-shell { grid-template-columns: 39.3% 60.7%; }
+    .auth-login-shell { grid-template-columns: 3fr 1fr; }
     .auth-panel { padding: 48px 50px; }
     .auth-form-wrap { width: min(790px, 100%); }
     .auth-form-wrap h2 { font-size: 34px; }

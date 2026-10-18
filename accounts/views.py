@@ -16,7 +16,6 @@ from .models import UserProfile
 
 
 CANDIDATE_STEPS = [
-    {"id": "resume", "title": "Resume", "question": "Upload your current resume first. We will use it as the starting point for your profile and tailored applications.", "label": "Resume file", "type": "file", "required": True},
     {"id": "name", "title": "Your name", "question": "What should we call you?", "label": "Full name"},
     {"id": "career", "title": "Career interests", "question": "Which broad career area are you interested in?", "label": "Career area", "type": "select", "choices": CAREER_CHOICES},
     {"id": "specialisation", "title": "Specialisation", "question": "Which specialisation would you like to explore?", "label": "Specialisation", "type": "select", "choices": SPECIALISATION_CHOICES},
@@ -127,17 +126,13 @@ def onboarding(request):
         request.session["onboarding_complete"] = True
         return redirect("home")
     step = steps[step_number]
-    initial = {} if step.get("type") == "file" else {step["id"]: answers.get(step["id"], "")}
-    form = OnboardingForm(request.POST or None, request.FILES or None, initial=initial, field_name=step["id"], label=step["label"], field_type=step.get("type", "text"), choices=step.get("choices"), required=step.get("required", True))
+    initial = {step["id"]: answers.get(step["id"], "")}
+    form = OnboardingForm(request.POST or None, initial=initial, field_name=step["id"], label=step["label"], field_type=step.get("type", "text"), choices=step.get("choices"), required=step.get("required", True))
     if request.method == "POST" and form.is_valid():
         value = form.cleaned_data.get(step["id"])
-        if step.get("type") == "file":
-            profile.resume = value
-            answers[step["id"]] = value.name
-        else:
-            answers[step["id"]] = value
+        answers[step["id"]] = value
         profile.profile_data = answers
-        profile.save(update_fields=["profile_data", "resume"] if step.get("type") == "file" else ["profile_data"])
+        profile.save(update_fields=["profile_data"])
         if role == "candidate":
             from candidates.services import sync_candidate_profile
 
@@ -164,3 +159,8 @@ def onboarding(request):
 def logout_view(request):
     logout(request)
     return redirect("login")
+
+
+@login_required
+def plans(request):
+    return render(request, "accounts/plans.html", {"role": _role(request)})

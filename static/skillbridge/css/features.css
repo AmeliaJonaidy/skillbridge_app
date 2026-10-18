@@ -306,13 +306,101 @@
 }
 .learning-target {
     display:flex;
-    gap:20px;
-    align-items:flex-end;
-    margin-bottom:20px
+    flex-direction:column;
+    align-items:stretch;
+    align-self:start;
+    gap:22px;
+    margin-bottom:20px;
+    padding:24px
 }
-.learning-target .field {
-    flex:1;
-    max-width:550px
+.learning-target-heading {
+    display:flex;
+    align-items:center;
+    gap:13px
+}
+.learning-target-heading h2 {
+    margin-top:3px
+}
+.learning-target-icon {
+    display:grid;
+    place-items:center;
+    width:38px;
+    height:38px;
+    border-radius:11px;
+    background:var(--soft);
+    color:var(--accent);
+    font-size:20px
+}
+.learning-target-values {
+    display:grid;
+    gap:13px
+}
+.learning-target-values>div {
+    display:grid;
+    gap:4px;
+    padding:13px 14px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:var(--bg)
+}
+.learning-label {
+    color:var(--muted);
+    font-size:10px;
+    letter-spacing:.7px;
+    text-transform:uppercase
+}
+.learning-target-values strong {
+    color:var(--ink);
+    font-size:14px;
+    font-weight:600
+}
+.learning-panel {
+    overflow:hidden
+}
+.learning-panel-heading {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:8px
+}
+.learning-panel-heading h2 {
+    margin-top:3px
+}
+.learning-count {
+    display:grid;
+    place-items:center;
+    min-width:30px;
+    height:30px;
+    border-radius:50%;
+    background:var(--soft);
+    color:var(--accent);
+    font-size:12px;
+    font-weight:700
+}
+.learning-item {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    padding:18px 0;
+    border-top:1px solid var(--line)
+}
+.learning-item-copy {
+    min-width:0;
+    flex:1
+}
+.learning-item p {
+    color:var(--muted);
+    font-size:12px;
+    margin-top:6px;
+    line-height:1.6
+}
+.learning-item form {
+    flex-shrink:0
+}
+.learning-dot {
+    color:var(--line)
 }
 .skill-summary {
     display:grid;
@@ -557,7 +645,12 @@
         flex-direction:column;
         align-items:stretch
     }
-    .learning-target .field {
+    .learning-item {
+        align-items:flex-start;
+        flex-direction:column
+    }
+    .learning-item form,
+    .learning-item form button {
         width:100%
     }
     .skill-summary {

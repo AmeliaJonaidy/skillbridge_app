@@ -27,6 +27,7 @@ urlpatterns = [
     path('signup/', views.signup_view, name='signup'),
     path('logout/', views.logout_view, name='logout'),
     path('onboarding/', views.onboarding, name='onboarding'),
+    path('plans/', views.plans, name='plans'),
     path('', include('candidates.urls')),
     path('recruiter/', include('employers.urls')),
     path('jobs/', include('jobs.urls')),

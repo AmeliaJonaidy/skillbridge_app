@@ -69,7 +69,7 @@
                 </div>
             </div>
 
-            <form method="post" enctype="multipart/form-data" class="onboard-compose">
+            <form method="post" class="onboard-compose">
                 {% csrf_token %}
                 <div class="onboard-fields">{{ form }}</div>
                 <div class="auth-error">{{ form.errors }}</div>
@@ -89,4 +89,40 @@
         </section>
     </main>
 </div>
+<script>
+    (function () {
+        const messages = document.querySelector(".onboard-messages");
+        const currentQuestion = messages && messages.querySelector(".current-question");
+        const previousAnswers = messages && messages.querySelectorAll(".onboard-bubble.user");
+
+        if (!messages || !currentQuestion) {
+            return;
+        }
+
+        if (!previousAnswers.length) {
+            return;
+        }
+
+        const previousAnswer = previousAnswers[previousAnswers.length - 1];
+        const relativeTop = function (element) {
+            return element.getBoundingClientRect().top
+                - messages.getBoundingClientRect().top
+                + messages.scrollTop;
+        };
+        const previousAnswerTop = relativeTop(previousAnswer);
+        const currentQuestionTop = relativeTop(currentQuestion);
+
+        const startTop = Math.max(0, previousAnswerTop - 24);
+        messages.style.scrollBehavior = "auto";
+        messages.scrollTop = startTop;
+
+        requestAnimationFrame(function () {
+            messages.style.scrollBehavior = "smooth";
+            messages.scrollTo({
+                top: Math.max(0, currentQuestionTop - 24),
+                behavior: "smooth",
+            });
+        });
+    }());
+</script>
 {% endblock %}

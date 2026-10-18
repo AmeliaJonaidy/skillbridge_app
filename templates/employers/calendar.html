@@ -3,6 +3,7 @@
 {% block title %}Recruiter calendar · SkillBridge{% endblock %}
 
 {% block content %}
+<div class="calendar-view">
 <div class="page-head">
     <div>
         <p class="eyebrow">HIRING WORKSPACE</p>
@@ -13,22 +14,11 @@
 
 {% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
 
-<div class="content-columns">
-    <section class="card calendar-card">
-        <h2>Upcoming interviews</h2>
-        {% for interview in interviews %}
-            <div class="notification-item">
-                <div class="row between"><b>{{ interview.application.job.title }}</b><span class="pill progress-green">{{ interview.application.candidate.username }}</span></div>
-                <p>{{ interview.scheduled_start|date:"d M Y, H:i" }}</p>
-                {% if interview.meeting_url %}<a href="{{ interview.meeting_url }}" target="_blank" rel="noreferrer">Open meeting link</a>{% endif %}
-                {% if interview.notes %}<p class="muted">{{ interview.notes }}</p>{% endif %}
-            </div>
-        {% empty %}
-            <p class="sub">No interviews scheduled yet.</p>
-        {% endfor %}
-    </section>
-
-    <aside class="card">
+<div class="calendar-page-layout">
+    <aside class="calendar-sidebar">
+        <div class="card selected-day"><h2>{{ calendar.selected_date|date:"l, d F Y" }}</h2>{% for interview in calendar.selected_events %}<div class="calendar-banner"><b>{{ interview.application.job.title }}</b><span>{{ interview.scheduled_start|date:"H:i" }} · {{ interview.application.candidate.username }}</span>{% if interview.meeting_url %}<a href="{{ interview.meeting_url }}" target="_blank" rel="noreferrer">Open meeting link</a>{% endif %}</div>{% empty %}<p class="sub">No interview scheduled for this date.</p>{% endfor %}</div>
+        <div class="card calendar-card"><h2>Upcoming interviews</h2>{% for interview in interviews %}<div class="notification-item"><div class="row between"><b>{{ interview.application.job.title }}</b><span class="pill progress-green">{{ interview.application.candidate.username }}</span></div><p>{{ interview.scheduled_start|date:"d M Y, H:i" }}</p>{% if interview.meeting_url %}<a href="{{ interview.meeting_url }}" target="_blank" rel="noreferrer">Open meeting link</a>{% endif %}</div>{% empty %}<p class="sub">No interviews scheduled yet.</p>{% endfor %}</div>
+        <div class="card">
         <h2>Schedule an interview</h2>
         <p class="sub">Paste the Cal.com booking or meeting link when you create the interview.</p>
         <form method="post" class="stack">
@@ -37,6 +27,13 @@
             {% for field in form %}<label class="field">{{ field.label }}{{ field }}{{ field.errors }}</label>{% endfor %}
             <button class="primary" type="submit">Schedule interview</button>
         </form>
+        </div>
     </aside>
+    <section class="cal-board" id="calendar">
+        <div class="cal-toolbar"><div class="cal-arrows"><a class="button small" href="{% url 'recruiter_calendar' %}?month={{ calendar.previous_month|date:'Y-m' }}&date={{ calendar.selected_date|date:'Y-m-d' }}" aria-label="Previous month">‹</a><a class="button small" href="{% url 'recruiter_calendar' %}?month={{ calendar.next_month|date:'Y-m' }}&date={{ calendar.selected_date|date:'Y-m-d' }}" aria-label="Next month">›</a></div><h2>{{ calendar.month_label }}</h2><a class="button small" href="{% url 'recruiter_calendar' %}">Today</a></div>
+        <div class="cal-weekdays">{% for weekday in calendar.weekdays %}<div>{{ weekday }}</div>{% endfor %}</div>
+        <div class="cal-month cal-rows-{{ calendar.row_count }}">{% for week in calendar.weeks %}<div class="cal-week">{% for day in week %}<a class="cal-day{% if not day.in_month %} outside{% endif %}{% if day.is_selected %} selected{% endif %}" href="{% url 'recruiter_calendar' %}?month={{ calendar.month|date:'Y-m' }}&date={{ day.date|date:'Y-m-d' }}"><span class="cal-date{% if day.is_today %} today{% endif %}">{{ day.day }}</span>{% for interview in day.events %}<span class="cal-event progress-yellow" title="{{ interview.application.job.title }}">{{ interview.scheduled_start|date:"H:i" }} · {{ interview.application.candidate.username }}</span>{% endfor %}</a>{% endfor %}</div>{% endfor %}</div>
+    </section>
+</div>
 </div>
 {% endblock %}

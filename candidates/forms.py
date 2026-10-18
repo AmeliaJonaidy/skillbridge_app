@@ -26,4 +26,3 @@ class CandidateProfileForm(forms.Form):
     awards = forms.CharField(label="Awards and achievements", required=False, widget=forms.Textarea(attrs={"rows": 3}))
     linkedin = forms.URLField(label="LinkedIn profile", required=False)
     visa = forms.ChoiceField(label="Visa / work authorisation", required=False, choices=[("", "Choose an option")] + VISA_CHOICES)
-    resume = forms.FileField(label="Resume upload", required=False)

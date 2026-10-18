@@ -39,7 +39,5 @@ class OnboardingForm(forms.Form):
             self.fields[field_name] = forms.ChoiceField(choices=_normalise_choices(choices), widget=forms.RadioSelect, **field_kwargs)
         elif field_type == "select":
             self.fields[field_name] = forms.ChoiceField(choices=[("", "Choose an option")] + _normalise_choices(choices), **field_kwargs)
-        elif field_type == "file":
-            self.fields[field_name] = forms.FileField(required=required, label=label)
         else:
             self.fields[field_name] = forms.CharField(max_length=4000, **field_kwargs)

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}My plans · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">SKILLBRIDGE PLANS</p>
+        <h1>My plans</h1>
+        <p class="sub">Choose the tools that fit the way you use SkillBridge.</p>
+    </div>
+</div>
+
+<section class="plan-grid">
+    <article class="card plan-card">
+        <p class="eyebrow">CURRENT PLAN</p>
+        <h2>SkillBridge Free</h2>
+        <p class="plan-price">S$0 <span>forever</span></p>
+        <p class="sub">Get started with the essential tools for building your profile and managing your job search.</p>
+        <ul>
+            <li>Account registration and login</li>
+            <li>Profile and background setup</li>
+            <li>Text-based resume draft</li>
+            <li>Job discovery, applications, and progress tracking</li>
+            <li>Calendar and interview tracking</li>
+        </ul>
+        <span class="pill progress-green">Active</span>
+    </article>
+    <article class="card plan-card plan-card-pro">
+        <p class="eyebrow">UPGRADE PLAN</p>
+        <h2>SkillBridge Pro</h2>
+        {% if role == "candidate" %}
+        <p class="sub">Advanced job matching insights for your applications.</p>
+        {% elif role == "recruiter" %}
+        <p class="sub">Advanced applicant review tools for your job listings.</p>
+        {% endif %}
+
+        {% if role == "candidate" %}
+        <div class="plan-section">
+            <h3>Applicants</h3>
+            <ul>
+                <li>Percentage score showing how well a job aligns with the applicant’s resume</li>
+                <li>Skill extraction from the applicant’s resume and each job description</li>
+                <li>Matched skills, missing skills, and a readiness score beside each job</li>
+            </ul>
+        </div>
+        {% elif role == "recruiter" %}
+        <div class="plan-section">
+            <h3>Recruiters</h3>
+            <ul>
+                <li>Shortlist suitable applicants</li>
+                <li>Rank applicants based on their suitability for that particular job <strong>(Pro)</strong></li>
+            </ul>
+        </div>
+        {% endif %}
+
+        <button class="button" type="button" disabled>Upgrade coming soon</button>
+    </article>
+</section>
+{% endblock %}

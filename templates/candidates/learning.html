@@ -11,14 +11,22 @@
     </div>
 </div>
 
-<div class="content-columns">
+<div class="content-columns learning-layout">
     <section class="stack">
-        <div class="card">
-            <h2>Your milestones</h2>
+        <div class="card learning-panel">
+            <div class="learning-panel-heading">
+                <div>
+                    <p class="eyebrow">YOUR PROGRESS</p>
+                    <h2>Your milestones</h2>
+                </div>
+                <span class="learning-count">{{ milestones|length }}</span>
+            </div>
             {% for milestone in milestones %}
-                <div class="notification-item">
-                    <div class="row between"><b>{{ milestone.certification.title }}</b><span class="pill">{{ milestone.get_status_display }}</span></div>
-                    <p>{{ milestone.certification.provider }} · {% if milestone.certification.cost %}S${{ milestone.certification.cost }}{% else %}Free{% endif %}</p>
+                <div class="learning-item">
+                    <div class="learning-item-copy">
+                        <div class="row between"><b>{{ milestone.certification.title }}</b><span class="pill">{{ milestone.get_status_display }}</span></div>
+                        <p>{{ milestone.certification.provider }} <span class="learning-dot">·</span> {% if milestone.certification.cost %}S${{ milestone.certification.cost }}{% else %}Free{% endif %}</p>
+                    </div>
                     {% if milestone.status != "completed" %}
                         <form method="post" class="row">
                             {% csrf_token %}
@@ -33,10 +41,15 @@
             {% endfor %}
         </div>
 
-        <div class="card">
-            <h2>Recommended certifications</h2>
+        <div class="card learning-panel">
+            <div class="learning-panel-heading">
+                <div>
+                    <p class="eyebrow">NEXT STEPS</p>
+                    <h2>Recommended certifications</h2>
+                </div>
+            </div>
             {% for certification in certifications %}
-                <div class="notification-item">
+                <div class="learning-item">
                     <div class="row between"><b>{{ certification.title }}</b><span class="pill gray">{{ certification.provider }}</span></div>
                     <p>{{ certification.skills|default:"Skills to support your target role." }}</p>
                     <form method="post">
@@ -53,9 +66,23 @@
     </section>
 
     <aside class="card learning-target">
-        <h2>Your target area</h2>
-        <p class="sub">{{ profile_data.career|default:"Choose a career area" }}</p>
-        <p class="sub">{{ profile_data.specialisation|default:"Choose a specialisation" }}</p>
+        <div class="learning-target-heading">
+            <span class="learning-target-icon" aria-hidden="true">↗</span>
+            <div>
+                <p class="eyebrow">YOUR DIRECTION</p>
+                <h2>Your target area</h2>
+            </div>
+        </div>
+        <div class="learning-target-values">
+            <div>
+                <span class="learning-label">Career</span>
+                <strong>{{ profile_data.career|default:"Not set" }}</strong>
+            </div>
+            <div>
+                <span class="learning-label">Specialisation</span>
+                <strong>{{ profile_data.specialisation|default:"Not set" }}</strong>
+            </div>
+        </div>
         <a class="button small" href="{% url 'candidate_profile' %}">Update profile</a>
     </aside>
 </div>

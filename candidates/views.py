@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import UserProfile
+from accounts.calendar import build_month_calendar
 from accounts.decorators import candidate_required
 from applications.models import Interview, JobApplication, SavedJob
 from jobs.forms import JobFilterForm
@@ -43,8 +44,8 @@ def _profile_initial(request, profile):
 def _completion_percent(profile):
     data = profile.profile_data or {}
     fields = ["name", "career", "specialisation", "education", "institution", "experience", "certifications", "skills", "portfolio", "awards", "linkedin", "visa"]
-    completed = sum(bool(data.get(field)) for field in fields) + bool(profile.resume)
-    return round(completed / (len(fields) + 1) * 100)
+    completed = sum(bool(data.get(field)) for field in fields)
+    return round(completed / len(fields) * 100)
 
 
 @candidate_required
@@ -84,25 +85,18 @@ def jobs(request):
 def profile(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user, defaults={"role": "candidate"})
     initial = _profile_initial(request, profile)
-    form = CandidateProfileForm(request.POST or None, request.FILES or None, initial=initial)
+    form = CandidateProfileForm(request.POST or None, initial=initial)
     if request.method == "POST" and form.is_valid():
         data = dict(profile.profile_data or {})
         for field in form.fields:
-            if field == "resume":
-                continue
             value = form.cleaned_data.get(field)
             if field == "email":
                 request.user.email = value or ""
                 request.user.save(update_fields=["email"])
             elif value is not None:
                 data[field] = value
-        resume = form.cleaned_data.get("resume")
-        update_fields = ["profile_data"]
-        if resume:
-            profile.resume = resume
-            update_fields.append("resume")
         profile.profile_data = data
-        profile.save(update_fields=update_fields)
+        profile.save(update_fields=["profile_data"])
         sync_candidate_profile(request.user, data)
         messages.success(request, "Your profile has been updated.")
         form = CandidateProfileForm(initial=_profile_initial(request, profile))
@@ -125,7 +119,8 @@ def applications(request):
 @candidate_required
 def calendar(request):
     interviews = Interview.objects.filter(application__candidate=request.user).select_related("application__job__company")
-    return render(request, "candidates/calendar.html", _context(request, interviews=interviews))
+    calendar_data = build_month_calendar(interviews, request.GET.get("month"), request.GET.get("date"))
+    return render(request, "candidates/calendar.html", _context(request, interviews=interviews, calendar=calendar_data))
 
 
 @candidate_required

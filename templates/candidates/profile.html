@@ -18,7 +18,7 @@
 {% endif %}
 
 <section class="content-columns">
-    <form class="card account-card" method="post" enctype="multipart/form-data">
+    <form class="card account-card" method="post">
         {% csrf_token %}
         {% if form.non_field_errors %}
             <div class="auth-error">{{ form.non_field_errors }}</div>
@@ -29,9 +29,6 @@
                 <p class="eyebrow">PROFILE COMPLETENESS</p>
                 <h2>{{ completion_percent }}% complete</h2>
             </div>
-            {% if profile.resume %}
-                <a class="button small" href="{{ profile.resume.url }}">View current resume</a>
-            {% endif %}
         </div>
 
         <div class="form-grid">
@@ -49,7 +46,6 @@
             <label class="field span2">{{ form.awards.label }}{{ form.awards }}{{ form.awards.errors }}</label>
             <label class="field">{{ form.linkedin.label }}{{ form.linkedin }}{{ form.linkedin.errors }}</label>
             <label class="field">{{ form.visa.label }}{{ form.visa }}{{ form.visa.errors }}</label>
-            <label class="field span2">{{ form.resume.label }}{{ form.resume }}{{ form.resume.errors }}</label>
         </div>
 
         <div class="static-page-actions">

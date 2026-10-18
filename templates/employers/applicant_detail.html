@@ -29,7 +29,6 @@
             <p><b>Specialisation:</b> {{ profile.profile_data.specialisation|default:"Not provided" }}</p>
             <p><b>Skills:</b> {{ profile.profile_data.skills|default:"Not provided"|linebreaksbr }}</p>
             <p><b>Experience:</b> {{ profile.profile_data.experience|default:"Not provided"|linebreaksbr }}</p>
-            {% if profile.resume %}<a class="button small" href="{{ profile.resume.url }}">Open resume</a>{% endif %}
         </div>
     </section>
 
