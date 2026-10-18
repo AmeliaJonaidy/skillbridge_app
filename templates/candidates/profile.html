@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}My profile · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">YOUR DETAILS</p>
+        <h1>My profile</h1>
+        <p class="sub">Your chatbot answers appear here. Update them whenever you need.</p>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="card profile-message">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<section class="content-columns">
+    <form class="card account-card" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="auth-error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">PROFILE COMPLETENESS</p>
+                <h2>{{ completion_percent }}% complete</h2>
+            </div>
+            {% if profile.resume %}
+                <a class="button small" href="{{ profile.resume.url }}">View current resume</a>
+            {% endif %}
+        </div>
+
+        <div class="form-grid">
+            <label class="field">{{ form.name.label }}{{ form.name }}{{ form.name.errors }}</label>
+            <label class="field">{{ form.email.label }}{{ form.email }}{{ form.email.errors }}</label>
+            <label class="field">{{ form.phone.label }}{{ form.phone }}{{ form.phone.errors }}</label>
+            <label class="field">{{ form.career.label }}{{ form.career }}{{ form.career.errors }}</label>
+            <label class="field">{{ form.specialisation.label }}{{ form.specialisation }}{{ form.specialisation.errors }}</label>
+            <label class="field">{{ form.education.label }}{{ form.education }}{{ form.education.errors }}</label>
+            <label class="field span2">{{ form.institution.label }}{{ form.institution }}{{ form.institution.errors }}</label>
+            <label class="field span2">{{ form.experience.label }}{{ form.experience }}{{ form.experience.errors }}</label>
+            <label class="field span2">{{ form.certifications.label }}{{ form.certifications }}{{ form.certifications.errors }}</label>
+            <label class="field span2">{{ form.skills.label }}{{ form.skills }}{{ form.skills.errors }}</label>
+            <label class="field span2">{{ form.portfolio.label }}{{ form.portfolio }}{{ form.portfolio.errors }}</label>
+            <label class="field span2">{{ form.awards.label }}{{ form.awards }}{{ form.awards.errors }}</label>
+            <label class="field">{{ form.linkedin.label }}{{ form.linkedin }}{{ form.linkedin.errors }}</label>
+            <label class="field">{{ form.visa.label }}{{ form.visa }}{{ form.visa.errors }}</label>
+            <label class="field span2">{{ form.resume.label }}{{ form.resume }}{{ form.resume.errors }}</label>
+        </div>
+
+        <div class="static-page-actions">
+            <button class="primary" type="submit">Save profile</button>
+            <a class="button" href="{% url 'onboarding' %}">Resume profile questions</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Company profile · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">HIRING WORKSPACE</p>
+        <h1>Company profile</h1>
+        <p class="sub">Keep your hiring information current.</p>
+    </div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
+
+<form method="post" class="card account-card">
+    {% csrf_token %}
+    <div class="form-grid">
+        {% for field in form %}
+            <label class="field {% if field.name == 'description' %}span2{% endif %}">{{ field.label }}{{ field }}{{ field.errors }}</label>
+        {% endfor %}
+    </div>
+    <div class="static-page-actions"><button class="primary" type="submit">Save company profile</button></div>
+</form>
+{% endblock %}

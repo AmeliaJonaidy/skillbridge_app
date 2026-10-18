@@ -1,0 +1,12 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path("jobs/", views.jobs, name="candidate_jobs"),
+    path("saved-jobs/", views.saved_jobs, name="candidate_saved_jobs"),
+    path("profile/", views.profile, name="candidate_profile"),
+    path("resume/", views.resume, name="candidate_resume"),
+    path("applications/", views.applications, name="candidate_applications"),
+    path("calendar/", views.calendar, name="candidate_calendar"),
+    path("learning/", views.learning, name="candidate_learning"),
+]

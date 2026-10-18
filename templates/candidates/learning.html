@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Skill development · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">YOUR JOURNEY</p>
+        <h1>Skill development</h1>
+        <p class="sub">Choose recognised certifications and track your next milestones.</p>
+    </div>
+</div>
+
+<div class="content-columns">
+    <section class="stack">
+        <div class="card">
+            <h2>Your milestones</h2>
+            {% for milestone in milestones %}
+                <div class="notification-item">
+                    <div class="row between"><b>{{ milestone.certification.title }}</b><span class="pill">{{ milestone.get_status_display }}</span></div>
+                    <p>{{ milestone.certification.provider }} · {% if milestone.certification.cost %}S${{ milestone.certification.cost }}{% else %}Free{% endif %}</p>
+                    {% if milestone.status != "completed" %}
+                        <form method="post" class="row">
+                            {% csrf_token %}
+                            <input type="hidden" name="certification_id" value="{{ milestone.certification.id }}">
+                            <input type="hidden" name="status" value="completed">
+                            <button class="button small" type="submit">Mark completed</button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <p class="sub">You have not selected a learning milestone yet.</p>
+            {% endfor %}
+        </div>
+
+        <div class="card">
+            <h2>Recommended certifications</h2>
+            {% for certification in certifications %}
+                <div class="notification-item">
+                    <div class="row between"><b>{{ certification.title }}</b><span class="pill gray">{{ certification.provider }}</span></div>
+                    <p>{{ certification.skills|default:"Skills to support your target role." }}</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="certification_id" value="{{ certification.id }}">
+                        <input type="hidden" name="status" value="in_progress">
+                        <button class="button small" type="submit">Add to journey</button>
+                    </form>
+                </div>
+            {% empty %}
+                <p class="sub">Certification recommendations will appear when they are added by the administrator.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <aside class="card learning-target">
+        <h2>Your target area</h2>
+        <p class="sub">{{ profile_data.career|default:"Choose a career area" }}</p>
+        <p class="sub">{{ profile_data.specialisation|default:"Choose a specialisation" }}</p>
+        <a class="button small" href="{% url 'candidate_profile' %}">Update profile</a>
+    </aside>
+</div>
+{% endblock %}

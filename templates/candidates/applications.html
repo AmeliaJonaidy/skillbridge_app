@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Applications · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">YOUR PROGRESS</p>
+        <h1>Applications</h1>
+        <p class="sub">Track every application and interview appointment.</p>
+    </div>
+</div>
+
+<div class="card table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Role</th>
+                <th>Company</th>
+                <th>Applied</th>
+                <th>Readiness</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for application in applications %}
+                <tr>
+                    <td><a href="{% url 'job_detail' application.job.id %}">{{ application.job.title }}</a></td>
+                    <td>{{ application.job.company.name }}</td>
+                    <td>{{ application.created_at|date:"d M Y" }}</td>
+                    <td>{% if application.match_score is not None %}{{ application.match_score }}%{% else %}—{% endif %}</td>
+                    <td><span class="pill {% if application.status == 'interview' or application.status == 'offer' %}progress-green{% endif %}">{{ application.get_status_display }}</span></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5">You have not applied for any jobs yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

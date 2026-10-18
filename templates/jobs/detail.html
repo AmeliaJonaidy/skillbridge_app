@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.title }} · SkillBridge{% endblock %}
+
+{% block content %}
+<article class="card job-detail">
+    <p class="eyebrow">{{ job.industry|default:"OPPORTUNITY" }} · {{ job.location|default:"Location not specified" }}</p>
+    <h1>{{ job.title }}</h1>
+    <p class="sub">{{ job.company.name }} · {{ job.get_employment_type_display }}{% if job.stipend %} · {{ job.stipend }}{% endif %}</p>
+
+    <div class="divider"></div>
+
+    <h2>About the role</h2>
+    <p class="sub">{{ job.description|linebreaksbr }}</p>
+
+    <h2>Required skills</h2>
+    <div class="tags">
+        {% for skill in job.required_skill_list %}
+            <span class="pill gray">{{ skill }}</span>
+        {% empty %}
+            <span class="pill gray">No required skills listed</span>
+        {% endfor %}
+    </div>
+
+    <div class="card match-summary">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">YOUR READINESS</p>
+                <h2>{{ match.score }}% skills match</h2>
+            </div>
+            {% if application %}<span class="pill progress-green">{{ application.get_status_display }}</span>{% endif %}
+        </div>
+        <p class="sub">Matched skills: {{ match.matched_skills|join:", "|default:"None yet" }}</p>
+        <p class="sub">Skills to develop: {{ match.missing_skills|join:", "|default:"None" }}</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}<p class="sub">{{ message }}</p>{% endfor %}
+    {% endif %}
+
+    <div class="static-page-actions">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="{% if is_saved %}unsave{% else %}save{% endif %}">
+            <button class="button" type="submit">{% if is_saved %}Remove from saved jobs{% else %}Save job{% endif %}</button>
+        </form>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="tailor">
+            <button class="button" type="submit">Tailor my resume</button>
+        </form>
+    </div>
+
+    {% if application %}
+        <p class="sub">You applied for this job on {{ application.created_at|date:"d M Y" }}.</p>
+    {% else %}
+        <div class="divider"></div>
+        <h2>Apply for this job</h2>
+        <form method="post" class="stack">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="apply">
+            <label class="field">
+                Cover note
+                {{ form.cover_note }}
+            </label>
+            <button class="primary" type="submit">Submit application →</button>
+        </form>
+    {% endif %}
+</article>
+{% endblock %}

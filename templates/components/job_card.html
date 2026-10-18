@@ -1,0 +1,39 @@
+<article class="card job-card">
+    <div class="job-card-header">
+        <div class="company-logo">{{ job.company.name|first|default:"N" }}</div>
+        <div>
+            <h3>{{ job.title }}</h3>
+            <p class="muted">{{ job.company.name }} · {{ job.industry|default:"Technology" }}</p>
+        </div>
+        <form method="post" action="{% url 'job_detail' job.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="{% if is_saved %}unsave{% else %}save{% endif %}">
+            <button class="icon-button" type="submit" aria-label="{% if is_saved %}Remove saved job{% else %}Save job{% endif %}">
+                {% if is_saved %}♥{% else %}♡{% endif %}
+            </button>
+        </form>
+    </div>
+
+    <div class="job-meta">
+        <span>⌖ {{ job.location|default:"Location not specified" }}</span>
+        <span>◷ {{ job.get_employment_type_display }}</span>
+        {% if job.stipend %}<span>{{ job.stipend }}</span>{% endif %}
+    </div>
+
+    <div class="tag-list">
+        {% for skill in job.required_skill_list|slice:":4" %}
+            <span class="tag">{{ skill }}</span>
+        {% empty %}
+            <span class="tag">Skills to be confirmed</span>
+        {% endfor %}
+    </div>
+
+    <div class="job-card-footer">
+        {% if match %}
+            <span class="match-label">{{ match.score }}% skills match</span>
+        {% else %}
+            <span class="match-label">Skills match unavailable</span>
+        {% endif %}
+        <a class="button button-small" href="{% url 'job_detail' job.id %}">View job</a>
+    </div>
+</article>

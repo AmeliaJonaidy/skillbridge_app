@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Applicant dashboard · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">YOUR WORKSPACE</p>
+        <h1>Welcome back, {{ request.user.username }}.</h1>
+        <p class="sub">Here’s where things stand with your job search.</p>
+    </div>
+    <a class="primary button" href="{% url 'candidate_jobs' %}">Browse jobs →</a>
+</div>
+
+<section class="stats dashboard-stats">
+    <div class="card stat"><span class="stat-label">Applications</span><div class="stat-number">{{ application_count }}</div><p class="stat-foot">Submitted applications</p></div>
+    <div class="card stat"><span class="stat-label">Upcoming interviews</span><div class="stat-number">{{ interview_count }}</div><p class="stat-foot">See dates and details</p></div>
+    <div class="card stat"><span class="stat-label">Saved jobs</span><div class="stat-number">{{ saved_count }}</div><p class="stat-foot">Return to your shortlist</p></div>
+    <div class="card stat"><span class="stat-label">Profile complete</span><div class="stat-number">{{ profile_completion }}%</div><p class="stat-foot">Review your background</p></div>
+</section>
+
+<div class="content-columns dashboard-columns">
+    <section class="stack">
+        <div class="card next-action">
+            <div class="next-action-icon">▤</div>
+            <div><h3>Keep your resume current</h3><p>Review your latest experience before your next application.</p></div>
+            <a class="button" href="{% url 'candidate_resume' %}">Review resume →</a>
+        </div>
+
+        <div>
+            <div class="section-heading">
+                <div><h2>Jobs to explore</h2><p class="section-description">Browse the roles currently listed on SkillBridge.</p></div>
+                <a class="text-link" href="{% url 'candidate_jobs' %}">View all jobs →</a>
+            </div>
+            <div class="job-list">
+                {% for job in recent_jobs %}
+                    {% include "components/job_card.html" with job=job %}
+                {% empty %}
+                    <div class="card"><p class="sub">No open roles yet.</p></div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <aside class="aside dashboard-aside">
+        <div class="card">
+            <div class="section-heading"><h2>Next interview</h2><span class="pill progress-green">Confirmed</span></div>
+            {% for interview in upcoming_interviews %}
+                <h3>{{ interview.application.job.title }}</h3>
+                <p class="section-description">{{ interview.application.job.company.name }} · {{ interview.scheduled_start|date:"d M Y, H:i" }}</p>
+            {% empty %}
+                <p class="section-description">No upcoming interviews.</p>
+            {% endfor %}
+            <a class="button small" href="{% url 'candidate_calendar' %}">Open calendar</a>
+        </div>
+        <div class="card">
+            <div class="section-heading"><h2>Your profile</h2><b>{{ profile_completion }}%</b></div>
+            <progress value="{{ profile_completion }}" max="100"></progress>
+            <p class="section-description"><a href="{% url 'candidate_profile' %}">Update your background</a> to improve your matches.</p>
+        </div>
+    </aside>
+</div>
+{% endblock %}

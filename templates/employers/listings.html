@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Job listings · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">HIRING WORKSPACE</p>
+        <h1>Job listings</h1>
+        <p class="sub">Create and manage your company’s opportunities.</p>
+    </div>
+    <a class="primary button" href="#new-listing">Create listing →</a>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="card table-wrap">
+    <table>
+        <thead><tr><th>Title</th><th>Applicants</th><th>Type</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for job in jobs %}
+                <tr>
+                    <td>{{ job.title }}</td>
+                    <td>{{ job.applications.count }}</td>
+                    <td>{{ job.get_employment_type_display }}</td>
+                    <td><span class="pill {% if job.status == 'open' %}progress-green{% endif %}">{{ job.get_status_display }}</span></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">No job listings yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<section id="new-listing" class="card account-card">
+    <h2>Create a job listing</h2>
+    {% if not company %}
+        <p class="sub">Complete your <a href="{% url 'recruiter_company' %}">company profile</a> first.</p>
+    {% else %}
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            {% for field in form %}
+                <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'preferred_skills' %}span2{% endif %}">
+                    {{ field.label }}{{ field }}{{ field.errors }}
+                </label>
+            {% endfor %}
+            <div class="static-page-actions span2"><button class="primary" type="submit">Publish listing</button></div>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}

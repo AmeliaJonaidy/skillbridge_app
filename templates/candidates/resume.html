@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}My resume · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">RESUME BUILDER</p>
+        <h1>My resume</h1>
+        <p class="sub">Review the resume generated from your profile.</p>
+    </div>
+</div>
+
+<div class="content-columns">
+    <article class="resume-paper">
+        <h2>{{ profile_data.name|default:request.user.username }}</h2>
+        <p>{{ profile_data.career|default:"Career area not set" }} · {{ profile_data.institution|default:"Institution not set" }}</p>
+        {% if profile.resume %}<p><a href="{{ profile.resume.url }}">Open uploaded resume</a></p>{% endif %}
+
+        <h3>Profile</h3>
+        <p>Interested in {{ profile_data.specialisation|default:"a new career direction" }}.</p>
+
+        <h3>Experience</h3>
+        <p>{{ profile_data.experience|default:"Add your work experience through My profile."|linebreaksbr }}</p>
+
+        <h3>Certifications</h3>
+        <p>{{ profile_data.certifications|default:"No certifications added yet."|linebreaksbr }}</p>
+
+        <h3>Skills</h3>
+        <p>{{ profile_data.skills|default:"Add your technical skills through My profile."|linebreaksbr }}</p>
+    </article>
+
+    <aside class="card">
+        <h2>Tailor your resume</h2>
+        <p class="sub">Choose a job to create an editable job-specific draft.</p>
+        <a class="primary button" href="{% url 'candidate_jobs' %}">Choose a job</a>
+    </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Applicant review · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">APPLICANT REVIEW</p>
+        <h1>{{ application.candidate.username }}</h1>
+        <p class="sub">{{ application.job.title }} · {{ application.job.company.name }}</p>
+    </div>
+    <a class="button" href="{% url 'recruiter_applicants' %}">Back to applicants</a>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="content-columns">
+    <section class="stack">
+        <div class="card">
+            <div class="section-heading"><h2>Application</h2><span class="pill progress-green">{{ application.get_status_display }}</span></div>
+            <p class="sub">Readiness score: {% if application.match_score is not None %}{{ application.match_score }}%{% else %}Not calculated{% endif %}</p>
+            <h3>Cover note</h3>
+            <p>{{ application.cover_note|default:"No cover note provided."|linebreaksbr }}</p>
+        </div>
+
+        <div class="card">
+            <h2>Candidate profile</h2>
+            <p><b>Career:</b> {{ profile.profile_data.career|default:"Not provided" }}</p>
+            <p><b>Specialisation:</b> {{ profile.profile_data.specialisation|default:"Not provided" }}</p>
+            <p><b>Skills:</b> {{ profile.profile_data.skills|default:"Not provided"|linebreaksbr }}</p>
+            <p><b>Experience:</b> {{ profile.profile_data.experience|default:"Not provided"|linebreaksbr }}</p>
+            {% if profile.resume %}<a class="button small" href="{{ profile.resume.url }}">Open resume</a>{% endif %}
+        </div>
+    </section>
+
+    <aside class="card">
+        <h2>Update progress</h2>
+        <form method="post" class="stack">
+            {% csrf_token %}
+            <label class="field">Status{{ status_form.status }}</label>
+            <button class="primary" type="submit">Save status</button>
+        </form>
+        <a class="button small" href="{% url 'recruiter_calendar' %}">Schedule interview</a>
+    </aside>
+</div>
+{% endblock %}

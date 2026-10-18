@@ -1,0 +1,26 @@
+<aside class="sidebar">
+    <div class="logo"><span class="logo-mark">sb</span>SkillBridge</div>
+    <p class="workspace-label">{% if role == 'recruiter' %}RECRUITER WORKSPACE{% else %}APPLICANT WORKSPACE{% endif %}</p>
+    <nav class="nav" aria-label="Main navigation">
+        {% if role == 'recruiter' %}
+        <a class="active" href="{% url 'home' %}"><span class="ico">▦</span>Dashboard</a>
+        <a href="{% url 'recruiter_listings' %}"><span class="ico">▤</span>Job listings</a>
+        <a href="{% url 'recruiter_applicants' %}"><span class="ico">♧</span>Applicants</a>
+        <a href="{% url 'recruiter_calendar' %}"><span class="ico">□</span>Calendar</a>
+        <a href="{% url 'recruiter_company' %}"><span class="ico">○</span>Company profile</a>
+        {% else %}
+        <a class="active" href="{% url 'home' %}"><span class="ico">▦</span>Dashboard</a>
+        <a href="{% url 'candidate_jobs' %}"><span class="ico">⌕</span>Find jobs</a>
+        <a href="{% url 'candidate_saved_jobs' %}"><span class="ico">♡</span>Saved jobs</a>
+        <a href="{% url 'candidate_resume' %}"><span class="ico">▤</span>My resume</a>
+        <a href="{% url 'candidate_applications' %}"><span class="ico">☷</span>Applications</a>
+        <a href="{% url 'candidate_calendar' %}"><span class="ico">□</span>Calendar</a>
+        <a href="{% url 'candidate_learning' %}"><span class="ico">◇</span>Skill development</a>
+        <a href="{% url 'candidate_profile' %}"><span class="ico">○</span>My profile</a>
+        {% endif %}
+    </nav>
+    <div class="sidebar-bottom">
+        <div class="plan-link"><span>SkillBridge Pro</span><a class="text-link" href="{% url 'home' %}">View plans →</a></div>
+        <a class="row ghost" href="{% if role == 'recruiter' %}{% url 'recruiter_company' %}{% else %}{% url 'candidate_profile' %}{% endif %}" style="padding:0;width:100%;text-align:left;text-decoration:none"><span class="person">{{ request.user.username|first|upper }}</span><span><b style="font-size:12px">{{ request.user.username }}</b><span class="muted" style="display:block;font-size:10px;margin-top:4px">{{ role|title }} account</span></span></a>
+    </div>
+</aside>

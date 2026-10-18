@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Applicants · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">HIRING WORKSPACE</p>
+        <h1>Applicants</h1>
+        <p class="sub">Review submissions and update candidate progress.</p>
+    </div>
+</div>
+
+<form class="card filterbar" method="get">
+    <select name="job">
+        <option value="">All job listings</option>
+        {% for job in jobs %}<option value="{{ job.id }}">{{ job.title }}</option>{% endfor %}
+    </select>
+    <select name="status">
+        <option value="">All statuses</option>
+        {% for value, label in status_form.fields.status.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+    <input name="q" placeholder="Search applicants">
+    <button type="submit">Filter</button>
+</form>
+
+<div class="card table-wrap">
+    <table>
+        <thead><tr><th>Candidate</th><th>Role</th><th>Skills match</th><th>Status</th><th>Update</th></tr></thead>
+        <tbody>
+            {% for application in applications %}
+                <tr>
+                    <td><a href="{% url 'recruiter_applicant_detail' application.id %}">{{ application.candidate.username }}</a></td>
+                    <td>{{ application.job.title }}</td>
+                    <td>{% if application.match_score is not None %}{{ application.match_score }}%{% else %}—{% endif %}</td>
+                    <td><span class="pill {% if application.status == 'shortlisted' or application.status == 'interview' %}progress-green{% endif %}">{{ application.get_status_display }}</span></td>
+                    <td>
+                        <form method="post" class="row">
+                            {% csrf_token %}
+                            <input type="hidden" name="application_id" value="{{ application.id }}">
+                            {{ status_form.status }}
+                            <button type="submit">Save</button>
+                        </form>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5">No applicants match your filters.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

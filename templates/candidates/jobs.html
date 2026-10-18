@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}{% if saved_page %}Saved jobs{% else %}Find jobs{% endif %} · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">OPPORTUNITIES</p>
+        <h1>{% if saved_page %}Saved jobs{% else %}Find a job{% endif %}</h1>
+        <p class="sub">Search roles, compare requirements, and see your skills match.</p>
+    </div>
+</div>
+
+{% if not saved_page %}
+<section class="card search-panel">
+    <form class="filterbar" method="get">
+        <label class="field">
+            Search jobs
+            {{ form.q }}
+        </label>
+        <label class="field">
+            Location
+            {{ form.location }}
+        </label>
+        <label class="field">
+            Employment type
+            {{ form.employment_type }}
+        </label>
+        <label class="field">
+            Industry
+            {{ form.industry }}
+        </label>
+        <button class="primary" type="submit">Search</button>
+    </form>
+</section>
+{% endif %}
+
+<div class="job-list">
+    {% for card in job_cards %}
+        {% include "components/job_card.html" with job=card.job match=card.match is_saved=card.is_saved %}
+    {% empty %}
+        <div class="card">
+            <h2>No jobs found</h2>
+            <p class="sub">Try changing your filters or check back later.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

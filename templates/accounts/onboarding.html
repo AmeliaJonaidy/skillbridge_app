@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Profile setup · SkillBridge{% endblock %}
+
+{% block page %}
+<div class="onboard-shell">
+    <header class="onboard-header">
+        <div class="logo">
+            <span class="logo-mark">sb</span>
+            SkillBridge
+        </div>
+        <span class="onboard-save-label">Your answers save as you go</span>
+    </header>
+
+    <main class="onboard-layout">
+        <aside class="onboard-aside">
+            <p class="eyebrow">LET’S GET ACQUAINTED</p>
+            <h1>A profile that<br>sounds like you.</h1>
+            <p class="sub">
+                A few questions now will help us prepare your workspace.
+                You can edit everything later.
+            </p>
+
+            <div class="onboard-meter">
+                <div class="row between">
+                    <b>{{ step_number }} of {{ total_steps }} answered</b>
+                    <span>{{ step_number|add:0 }} / {{ total_steps }}</span>
+                </div>
+                <progress value="{{ step_number }}" max="{{ total_steps }}"></progress>
+            </div>
+
+            <ol class="onboard-steps">
+                {% for item in steps %}
+                    <li class="{% if forloop.counter0 < step_number %}answered{% elif forloop.counter0 == step_number %}current{% endif %}">
+                        <span>
+                            {% if forloop.counter0 < step_number %}
+                                ✓
+                            {% else %}
+                                {{ forloop.counter }}
+                            {% endif %}
+                        </span>
+                        {{ item.title }}
+                    </li>
+                {% endfor %}
+            </ol>
+
+            <p class="onboard-footnote">{{ request.user.email }}</p>
+        </aside>
+
+        <section class="onboard-chat">
+            <header class="onboard-chat-head">
+                <span class="onboard-bot">sb</span>
+                <div>
+                    <h2>Meet your SkillBridge guide</h2>
+                    <p>A few questions. Your own words.</p>
+                </div>
+                <span class="pill">Profile setup</span>
+            </header>
+
+            <div class="onboard-messages" role="log">
+                {% for item in completed_steps %}
+                    <div class="onboard-bubble bot">{{ item.question }}</div>
+                    <div class="onboard-bubble user">{{ item.answer_display }}</div>
+                {% endfor %}
+
+                <div class="onboard-bubble bot current-question">
+                    <span class="eyebrow">QUESTION {{ step_number|add:1 }}</span>
+                    <h2>{{ step.question }}</h2>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="onboard-compose">
+                {% csrf_token %}
+                <div class="onboard-fields">{{ form }}</div>
+                <div class="auth-error">{{ form.errors }}</div>
+
+                <div class="onboard-controls">
+                    <a class="button" href="{% url 'logout' %}">Save & sign out</a>
+                    <button class="primary" type="submit">
+                        {% if step_number|add:1 == total_steps %}
+                            Finish profile
+                        {% else %}
+                            Continue
+                        {% endif %}
+                        →
+                    </button>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+/* Static Django navigation additions for the supplied SkillBridge UI. */
+.nav a {
+    border: 0;
+    background: transparent;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px;
+    color: #7a877e;
+    font-size: 13px;
+    text-decoration: none;
+}
+.nav a.active, .nav a:hover {
+    background: #edf3e8;
+    color: #255c43;
+    font-weight: 700;
+}
+.nav a .ico {
+    flex-shrink: 0;
+}
+.auth-page-django {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 30px;
+    background: var(--bg);
+}
+.auth-panel-django {
+    width: min(100%, 480px);
+    margin: auto;
+    padding: 42px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+.auth-panel-django .logo {
+    margin-bottom: 48px;
+}
+.auth-panel-django form p {
+    display: grid;
+    gap: 7px;
+    margin: 16px 0;
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 600;
+}
+.auth-panel-django .helptext, .auth-panel-django ul {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.role-choice { margin: 20px 0; padding: 0; border: 0; }
+.role-choice legend { margin-bottom: 8px; color: var(--ink); font-size: 12px; font-weight: 600; }
+.role-choice ul { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.role-choice li { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.role-choice label { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 12px; font-weight: 500; }
+.onboard-compose .errorlist { color: var(--red); font-size: 12px; }
+
+.profile-message {
+    margin-bottom: 18px;
+    color: var(--green);
+}
+
+/* Auth pages follow the supplied split-screen reference. */
+@media (min-width: 901px) {
+    .auth-shell { grid-template-columns: 39.3% 60.7%; }
+    .auth-panel { padding: 48px 50px; }
+    .auth-form-wrap { width: min(790px, 100%); }
+    .auth-form-wrap h2 { font-size: 34px; }
+    .auth-form-wrap .sub { font-size: 16px; }
+    .auth-form-wrap .field { font-size: 16px; }
+    .auth-form-wrap input, .auth-form-wrap select { min-height: 58px; font-size: 16px; }
+    .auth-form-wrap button.full { min-height: 58px; font-size: 16px; }
+}

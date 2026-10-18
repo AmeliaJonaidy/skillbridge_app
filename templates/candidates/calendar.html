@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">YOUR WORKSPACE</p>
+        <h1>Calendar</h1>
+        <p class="sub">Keep track of interviews and job-search milestones.</p>
+    </div>
+</div>
+
+<div class="card calendar-card">
+    <h2>Upcoming interviews</h2>
+    {% for interview in interviews %}
+        <div class="notification-item">
+            <div class="row between">
+                <b>{{ interview.application.job.title }}</b>
+                <span class="pill progress-green">Interview</span>
+            </div>
+            <p>{{ interview.scheduled_start|date:"d M Y, H:i" }} · {{ interview.application.job.company.name }}</p>
+            {% if interview.meeting_url %}<a href="{{ interview.meeting_url }}" target="_blank" rel="noreferrer">Open meeting link</a>{% endif %}
+            {% if interview.notes %}<p class="muted">{{ interview.notes }}</p>{% endif %}
+        </div>
+    {% empty %}
+        <p class="sub">No interviews have been scheduled yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}

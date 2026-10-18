@@ -1,3 +1,33 @@
+from django.conf import settings
 from django.db import models
 
-# Create your models here.
+
+class Company(models.Model):
+    name = models.CharField(max_length=200)
+    website = models.URLField(blank=True)
+    industry = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
+    logo_url = models.URLField(blank=True)
+    verification_status = models.CharField(max_length=30, default="pending")
+
+    def __str__(self):
+        return self.name
+
+
+class RecruiterProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="recruiter_profile",
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="recruiters",
+        blank=True,
+        null=True,
+    )
+    job_title = models.CharField(max_length=100, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} recruiter profile"

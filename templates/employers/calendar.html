@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Recruiter calendar · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">HIRING WORKSPACE</p>
+        <h1>Recruiter calendar</h1>
+        <p class="sub">Schedule interviews and keep your candidate follow-ups in one place.</p>
+    </div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="content-columns">
+    <section class="card calendar-card">
+        <h2>Upcoming interviews</h2>
+        {% for interview in interviews %}
+            <div class="notification-item">
+                <div class="row between"><b>{{ interview.application.job.title }}</b><span class="pill progress-green">{{ interview.application.candidate.username }}</span></div>
+                <p>{{ interview.scheduled_start|date:"d M Y, H:i" }}</p>
+                {% if interview.meeting_url %}<a href="{{ interview.meeting_url }}" target="_blank" rel="noreferrer">Open meeting link</a>{% endif %}
+                {% if interview.notes %}<p class="muted">{{ interview.notes }}</p>{% endif %}
+            </div>
+        {% empty %}
+            <p class="sub">No interviews scheduled yet.</p>
+        {% endfor %}
+    </section>
+
+    <aside class="card">
+        <h2>Schedule an interview</h2>
+        <p class="sub">Paste the Cal.com booking or meeting link when you create the interview.</p>
+        <form method="post" class="stack">
+            {% csrf_token %}
+            <label class="field">Candidate and role<select name="application_id" required><option value="">Choose an applicant</option>{% for application in applications %}<option value="{{ application.id }}">{{ application.candidate.username }} · {{ application.job.title }}</option>{% endfor %}</select></label>
+            {% for field in form %}<label class="field">{{ field.label }}{{ field }}{{ field.errors }}</label>{% endfor %}
+            <button class="primary" type="submit">Schedule interview</button>
+        </form>
+    </aside>
+</div>
+{% endblock %}

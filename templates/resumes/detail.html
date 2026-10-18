@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tailored_resume.title }} · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">TAILORED RESUME</p>
+        <h1>{{ tailored_resume.title }}</h1>
+        <p class="sub">Draft created for {{ tailored_resume.job.title }} at {{ tailored_resume.job.company.name }}.</p>
+    </div>
+</div>
+
+<article class="card resume-paper">
+    <pre class="resume-draft">{{ tailored_resume.content }}</pre>
+    <p class="muted">This is an editable first draft. Review it before submitting an application.</p>
+</article>
+{% endblock %}
