@@ -74,6 +74,15 @@ textarea:focus {
     border-radius: 14px;
 }
 
+.account-card.create-listing-card {
+    width: 100%;
+    max-width: none !important;
+}
+
+.create-listing-card .form-grid {
+    width: 100%;
+}
+
 .page-head {
     margin-bottom: 28px;
 }
@@ -116,6 +125,9 @@ textarea:focus {
     text-align: center;
     font-size: 15px;
     line-height: 1;
+}
+.nav a .nav-action {
+    margin-left: auto;
 }
 .auth-page-django {
     min-height: 100vh;

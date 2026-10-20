@@ -33,10 +33,7 @@ def _context(request, **extra):
     return {"role": "recruiter", **extra}
 
 
-@recruiter_required
-def listings(request):
-    recruiter = _recruiter(request)
-    form = JobForm(request.POST or None)
+def _publish_listing(request, recruiter, form):
     if request.method == "POST" and form.is_valid():
         if recruiter.company is None:
             messages.error(request, "Complete your company profile before creating a listing.")
@@ -47,8 +44,28 @@ def listings(request):
             job.save()
             messages.success(request, "Job listing created.")
             return redirect("recruiter_listings")
+    return None
+
+
+@recruiter_required
+def listings(request):
+    recruiter = _recruiter(request)
+    form = JobForm(request.POST or None)
+    response = _publish_listing(request, recruiter, form)
+    if response:
+        return response
     jobs = Job.objects.filter(created_by=request.user).select_related("company")
     return render(request, "employers/listings.html", _context(request, jobs=jobs, form=form, company=recruiter.company))
+
+
+@recruiter_required
+def create_listing(request):
+    recruiter = _recruiter(request)
+    form = JobForm(request.POST or None)
+    response = _publish_listing(request, recruiter, form)
+    if response:
+        return response
+    return render(request, "employers/create_listing.html", _context(request, form=form, company=recruiter.company))
 
 
 @recruiter_required

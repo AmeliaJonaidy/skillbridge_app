@@ -3,22 +3,23 @@
     <p class="workspace-label">{% if role == 'recruiter' %}RECRUITER WORKSPACE{% else %}APPLICANT WORKSPACE{% endif %}</p>
     <nav class="nav" aria-label="Main navigation">
         {% if role == 'recruiter' %}
-        <a class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}"><span class="ico" aria-hidden="true">▦</span>Dashboard</a>
-        <a class="{% if request.resolver_match.url_name == 'recruiter_listings' %}active{% endif %}" href="{% url 'recruiter_listings' %}"><span class="ico" aria-hidden="true">▤</span>Job listings</a>
-        <a class="{% if request.resolver_match.url_name in 'recruiter_applicants recruiter_applicant_detail' %}active{% endif %}" href="{% url 'recruiter_applicants' %}"><span class="ico" aria-hidden="true">♧</span>Applicants</a>
-        <a class="{% if request.resolver_match.url_name == 'recruiter_calendar' %}active{% endif %}" href="{% url 'recruiter_calendar' %}"><span class="ico" aria-hidden="true">□</span>Calendar</a>
-        <a class="{% if request.resolver_match.url_name == 'recruiter_company' %}active{% endif %}" href="{% url 'recruiter_company' %}"><span class="ico" aria-hidden="true">○</span>Company profile</a>
+        <a class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}"><span class="ico" aria-hidden="true">▥</span>Dashboard</a>
+        <a class="{% if request.resolver_match.url_name == 'recruiter_listings' %}active{% endif %}" href="{% url 'recruiter_listings' %}"><span class="ico" aria-hidden="true">💼</span>Job listings</a>
+        <a class="{% if request.resolver_match.url_name == 'recruiter_create_listing' %}active{% endif %}" href="{% url 'recruiter_create_listing' %}"><span class="ico nav-action" aria-hidden="true">✚</span>Create Job Listing</a>
+        <a class="{% if request.resolver_match.url_name in 'recruiter_applicants recruiter_applicant_detail' %}active{% endif %}" href="{% url 'recruiter_applicants' %}"><span class="ico" aria-hidden="true">👤</span>Applicants</a>
+        <a class="{% if request.resolver_match.url_name == 'recruiter_calendar' %}active{% endif %}" href="{% url 'recruiter_calendar' %}"><span class="ico" aria-hidden="true">🗓️</span>Calendar</a>
+        <a class="{% if request.resolver_match.url_name == 'recruiter_company' %}active{% endif %}" href="{% url 'recruiter_company' %}"><span class="ico" aria-hidden="true">🏢</span>Company profile</a>
         {% else %}
-        <a class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}"><span class="ico" aria-hidden="true">▦</span>Dashboard</a>
-        <a class="{% if request.resolver_match.url_name == 'candidate_jobs' %}active{% endif %}" href="{% url 'candidate_jobs' %}"><span class="ico" aria-hidden="true">⌕</span>Find jobs</a>
-        <a class="{% if request.resolver_match.url_name == 'candidate_saved_jobs' %}active{% endif %}" href="{% url 'candidate_saved_jobs' %}"><span class="ico" aria-hidden="true">♡</span>Saved jobs</a>
-        <a class="{% if request.resolver_match.url_name == 'candidate_resume' %}active{% endif %}" href="{% url 'candidate_resume' %}"><span class="ico" aria-hidden="true">▤</span>My resume</a>
-        <a class="{% if request.resolver_match.url_name == 'candidate_applications' %}active{% endif %}" href="{% url 'candidate_applications' %}"><span class="ico" aria-hidden="true">☷</span>Applications</a>
-        <a class="{% if request.resolver_match.url_name == 'candidate_calendar' %}active{% endif %}" href="{% url 'candidate_calendar' %}"><span class="ico" aria-hidden="true">□</span>Calendar</a>
-        <a class="{% if request.resolver_match.url_name == 'candidate_learning' %}active{% endif %}" href="{% url 'candidate_learning' %}"><span class="ico" aria-hidden="true">◇</span>Skill development</a>
-        <a class="{% if request.resolver_match.url_name == 'candidate_profile' %}active{% endif %}" href="{% url 'candidate_profile' %}"><span class="ico" aria-hidden="true">○</span>My profile</a>
+        <a class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}"><span class="ico" aria-hidden="true">▥</span>Dashboard</a>
+        <a class="{% if request.resolver_match.url_name == 'candidate_jobs' %}active{% endif %}" href="{% url 'candidate_jobs' %}"><span class="ico" aria-hidden="true">🔍</span>Find jobs</a>
+        <a class="{% if request.resolver_match.url_name == 'candidate_saved_jobs' %}active{% endif %}" href="{% url 'candidate_saved_jobs' %}"><span class="ico" aria-hidden="true">⛊</span>Saved jobs</a>
+        <a class="{% if request.resolver_match.url_name == 'candidate_resume' %}active{% endif %}" href="{% url 'candidate_resume' %}"><span class="ico" aria-hidden="true">📄</span>My resume</a>
+        <a class="{% if request.resolver_match.url_name == 'candidate_applications' %}active{% endif %}" href="{% url 'candidate_applications' %}"><span class="ico" aria-hidden="true">📋</span>Applications</a>
+        <a class="{% if request.resolver_match.url_name == 'candidate_calendar' %}active{% endif %}" href="{% url 'candidate_calendar' %}"><span class="ico" aria-hidden="true">🗓️</span>Calendar</a>
+        <a class="{% if request.resolver_match.url_name == 'candidate_learning' %}active{% endif %}" href="{% url 'candidate_learning' %}"><span class="ico" aria-hidden="true">📈</span>Skill development</a>
+        <a class="{% if request.resolver_match.url_name == 'candidate_profile' %}active{% endif %}" href="{% url 'candidate_profile' %}"><span class="ico" aria-hidden="true">👤</span>My profile</a>
         {% endif %}
-        <a class="{% if request.resolver_match.url_name == 'plans' %}active{% endif %}" href="{% url 'plans' %}"><span class="ico" aria-hidden="true">★</span>My plans</a>
+        <a class="{% if request.resolver_match.url_name == 'plans' %}active{% endif %}" href="{% url 'plans' %}"><span class="ico" aria-hidden="true">🎯</span>My plans</a>
     </nav>
     <div class="sidebar-bottom">
         <div class="plan-link"><span>SkillBridge Pro</span><a class="text-link" href="{% url 'plans' %}">View plans →</a></div>

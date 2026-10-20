@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Create a job listing · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <p class="eyebrow">HIRING WORKSPACE</p>
+        <h1>Create a job listing</h1>
+        <p class="sub">Publish a new opportunity for candidates.</p>
+    </div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
+
+<section class="card account-card create-listing-card" style="width: 100%; max-width: none;">
+    <h2>Create a job listing</h2>
+    {% if not company %}
+        <p class="sub">Complete your <a href="{% url 'recruiter_company' %}">company profile</a> first.</p>
+    {% else %}
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            {% for field in form %}
+                <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'preferred_skills' %}span2{% endif %}">
+                    {{ field.label }}{{ field }}{{ field.errors }}
+                </label>
+            {% endfor %}
+            <div class="static-page-actions span2"><button class="primary" type="submit">Publish listing</button></div>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}

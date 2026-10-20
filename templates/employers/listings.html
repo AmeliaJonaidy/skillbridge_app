@@ -9,7 +9,7 @@
         <h1>Job listings</h1>
         <p class="sub">Create and manage your company’s opportunities.</p>
     </div>
-    <a class="primary button" href="#new-listing">Create listing →</a>
+    <a class="primary button" href="{% url 'recruiter_create_listing' %}">Create listing →</a>
 </div>
 
 {% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
@@ -31,21 +31,4 @@
         </tbody>
     </table>
 </div>
-
-<section id="new-listing" class="card account-card">
-    <h2>Create a job listing</h2>
-    {% if not company %}
-        <p class="sub">Complete your <a href="{% url 'recruiter_company' %}">company profile</a> first.</p>
-    {% else %}
-        <form method="post" class="form-grid">
-            {% csrf_token %}
-            {% for field in form %}
-                <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'preferred_skills' %}span2{% endif %}">
-                    {{ field.label }}{{ field }}{{ field.errors }}
-                </label>
-            {% endfor %}
-            <div class="static-page-actions span2"><button class="primary" type="submit">Publish listing</button></div>
-        </form>
-    {% endif %}
-</section>
 {% endblock %}
