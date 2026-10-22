@@ -27,7 +27,7 @@ from .choices import (
     VISA_CHOICES,
 )
 from .forms import OnboardingForm, SignupForm
-from .models import Payment, UserProfile
+from .models import Notification, Payment, UserProfile
 from .payment_services import (
     PaymentProviderError,
     cancel_stripe_subscription,
@@ -118,6 +118,19 @@ def home(request):
     from candidates.views import dashboard_context
 
     return render(request, "candidates/dashboard.html", dashboard_context(request))
+
+
+@login_required
+def inbox(request):
+    notifications = Notification.objects.filter(recipient=request.user)
+    if request.method == "POST":
+        notifications.filter(is_read=False).update(is_read=True)
+        return redirect("inbox")
+    notifications.filter(is_read=False).update(is_read=True)
+    return render(request, "accounts/inbox.html", {
+        "role": _role(request),
+        "notifications": notifications,
+    })
 
 
 def login_view(request):

@@ -63,4 +63,21 @@ class Payment(models.Model):
     def __str__(self):
         return f'{self.user.username} · {self.provider} · {self.status}'
 
-# Create your models here.
+
+class Notification(models.Model):
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    title = models.CharField(max_length=200)
+    body = models.TextField()
+    kind = models.CharField(max_length=40, default="update")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.recipient.username} · {self.title}"

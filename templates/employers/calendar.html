@@ -6,7 +6,6 @@
 <div class="calendar-view">
 <div class="page-head">
     <div>
-        <p class="eyebrow">HIRING WORKSPACE</p>
         <h1>Recruiter calendar</h1>
         <p class="sub">Schedule interviews and keep your candidate follow-ups in one place.</p>
     </div>
@@ -16,24 +15,110 @@
 
 <div class="calendar-page-layout">
     <aside class="calendar-sidebar">
-        <div class="card selected-day"><h2>{{ calendar.selected_date|date:"l, d F Y" }}</h2>{% for interview in calendar.selected_events %}<div class="calendar-banner"><b>{{ interview.application.job.title }}</b><span>{{ interview.scheduled_start|date:"H:i" }} · {{ interview.application.candidate.username }}</span>{% if interview.meeting_url %}<a href="{{ interview.meeting_url }}" target="_blank" rel="noreferrer">Open meeting link</a>{% endif %}{% if interview.calcom_event_url %}<a href="{{ interview.calcom_event_url }}" target="_blank" rel="noreferrer">Open Cal.com booking</a>{% endif %}</div>{% empty %}<p class="sub">No interview scheduled for this date.</p>{% endfor %}</div>
-        <div class="card calendar-card"><h2>Upcoming interviews</h2>{% for interview in interviews %}<div class="notification-item"><div class="row between"><b>{{ interview.application.job.title }}</b><span class="pill progress-green">{{ interview.application.candidate.username }}</span></div><p>{{ interview.scheduled_start|date:"d M Y, H:i" }}</p>{% if interview.meeting_url %}<a href="{{ interview.meeting_url }}" target="_blank" rel="noreferrer">Open meeting link</a>{% endif %}{% if interview.calcom_event_url %}<a href="{{ interview.calcom_event_url }}" target="_blank" rel="noreferrer">Open Cal.com booking</a>{% endif %}</div>{% empty %}<p class="sub">No interviews scheduled yet.</p>{% endfor %}</div>
-        <div class="card">
-        <h2>Schedule an interview</h2>
-        <p class="sub">Only shortlisted candidates appear here. Add any meeting link such as Teams, Google Meet, or Zoom. A Cal.com booking link is optional; https:// is added when omitted.</p>
-        <form method="post" class="stack">
-            {% csrf_token %}
-            <label class="field">Candidate and role<select name="application_id" required><option value="">Choose an applicant</option>{% for application in applications %}<option value="{{ application.id }}">{{ application.candidate.username }} · {{ application.job.title }}</option>{% endfor %}</select></label>
-            {% for field in form %}<label class="field">{{ field.label }}{{ field }}{{ field.errors }}</label>{% endfor %}
-            <button class="primary" type="submit">Schedule interview</button>
-        </form>
-        </div>
+        <div class="card selected-day"><h2>{{ calendar.selected_date|date:"l, d F Y" }}</h2>{% for interview in calendar.selected_events %}<div class="calendar-banner"><b>{{ interview.application.job.title }}</b><span>{{ interview.scheduled_start|date:"H:i" }} · {{ interview.application.candidate.username }}</span><button class="button small" type="button" data-reschedule-interview data-interview-id="{{ interview.id }}" data-start="{{ interview.scheduled_start|date:'Y-m-d\TH:i' }}" data-end="{{ interview.scheduled_end|date:'Y-m-d\TH:i' }}">Reschedule</button>{% if interview.meeting_url %}<a href="{{ interview.meeting_url }}" target="_blank" rel="noreferrer">Open meeting link</a>{% endif %}</div>{% empty %}<p class="sub">No interview scheduled for this date.</p>{% endfor %}</div>
+        <div class="card calendar-card"><div class="row between"><h2>Upcoming interviews</h2><button class="primary small" type="button" data-open-interview>Create interview</button></div>{% for pending in pending_reschedules %}<div class="notification-item"><b>Reschedule request: {{ pending.application.candidate.username }}</b><p>{{ pending.application.job.title }} · {{ pending.proposed_start|date:"d M Y, H:i" }}</p>{% if pending.reschedule_reason %}<p class="sub"><b>Reason:</b> {{ pending.reschedule_reason }}</p>{% endif %}<form method="post" class="row"><input type="hidden" name="interview_id" value="{{ pending.id }}">{% csrf_token %}<button class="primary small" name="action" value="accept_reschedule">Accept</button><button class="button small" name="action" value="reject_reschedule">Reject</button></form></div>{% endfor %}{% for interview in upcoming_interviews %}<div class="notification-item"><div class="row between"><b>{{ interview.application.job.title }}</b><span class="pill progress-green">{{ interview.application.candidate.username }}</span></div><p>{{ interview.scheduled_start|date:"d M Y, H:i" }}</p><button class="button small" type="button" data-reschedule-interview data-interview-id="{{ interview.id }}" data-start="{{ interview.scheduled_start|date:'Y-m-d\TH:i' }}" data-end="{{ interview.scheduled_end|date:'Y-m-d\TH:i' }}">Reschedule</button>{% if interview.meeting_url %}<a href="{{ interview.meeting_url }}" target="_blank" rel="noreferrer">Open meeting link</a>{% endif %}</div>{% empty %}<p class="sub">No upcoming interviews.</p>{% endfor %}</div>
+        <div class="card calendar-card"><h2>Past interviews</h2>{% for interview in past_interviews %}<div class="notification-item"><div class="row between"><b>{{ interview.application.job.title }}</b><span class="pill">{{ interview.application.candidate.username }}</span></div><p>{{ interview.scheduled_start|date:"d M Y, H:i" }}</p><button class="button small" type="button" data-reschedule-interview data-interview-id="{{ interview.id }}" data-start="{{ interview.scheduled_start|date:'Y-m-d\TH:i' }}" data-end="{{ interview.scheduled_end|date:'Y-m-d\TH:i' }}">Reschedule</button></div>{% empty %}<p class="sub">No past interviews.</p>{% endfor %}</div>
     </aside>
     <section class="cal-board" id="calendar">
         <div class="cal-toolbar"><div class="cal-arrows"><a class="button small" href="{% url 'recruiter_calendar' %}?month={{ calendar.previous_month|date:'Y-m' }}&date={{ calendar.selected_date|date:'Y-m-d' }}" aria-label="Previous month">‹</a><a class="button small" href="{% url 'recruiter_calendar' %}?month={{ calendar.next_month|date:'Y-m' }}&date={{ calendar.selected_date|date:'Y-m-d' }}" aria-label="Next month">›</a></div><h2>{{ calendar.month_label }}</h2><a class="button small" href="{% url 'recruiter_calendar' %}">Today</a></div>
         <div class="cal-weekdays">{% for weekday in calendar.weekdays %}<div>{{ weekday }}</div>{% endfor %}</div>
-        <div class="cal-month cal-rows-{{ calendar.row_count }}">{% for week in calendar.weeks %}<div class="cal-week">{% for day in week %}<a class="cal-day{% if not day.in_month %} outside{% endif %}{% if day.is_selected %} selected{% endif %}" href="{% url 'recruiter_calendar' %}?month={{ calendar.month|date:'Y-m' }}&date={{ day.date|date:'Y-m-d' }}"><span class="cal-date{% if day.is_today %} today{% endif %}">{{ day.day }}</span>{% for interview in day.events %}<span class="cal-event progress-yellow" title="{{ interview.application.job.title }}">{{ interview.scheduled_start|date:"H:i" }} · {{ interview.application.candidate.username }}</span>{% endfor %}</a>{% endfor %}</div>{% endfor %}</div>
+        <div class="cal-month cal-rows-{{ calendar.row_count }}">{% for week in calendar.weeks %}<div class="cal-week">{% for day in week %}<a class="cal-day{% if not day.in_month %} outside{% endif %}{% if day.is_selected %} selected{% endif %}" href="{% url 'recruiter_calendar' %}?month={{ calendar.month|date:'Y-m' }}&date={{ day.date|date:'Y-m-d' }}" data-calendar-date="{{ day.date|date:'Y-m-d' }}"{% for interview in day.events %}{% if forloop.first %} data-interview-id="{{ interview.id }}" data-start="{{ interview.scheduled_start|date:'Y-m-d\TH:i' }}" data-end="{{ interview.scheduled_end|date:'Y-m-d\TH:i' }}"{% endif %}{% endfor %}><span class="cal-date{% if day.is_today %} today{% endif %}">{{ day.day }}</span>{% for interview in day.events %}<span class="cal-event progress-yellow" title="{{ interview.application.job.title }}">{{ interview.scheduled_start|date:"H:i" }} · {{ interview.application.candidate.username }}</span>{% endfor %}</a>{% endfor %}</div>{% endfor %}</div>
     </section>
 </div>
 </div>
+<dialog class="interview-dialog" data-interview-dialog>
+    <form method="post" class="stack">
+        {% csrf_token %}
+        <input type="hidden" name="interview_id" data-interview-id-field>
+        <label class="field" data-application-field>Candidate and role<select name="application_id"><option value="">Choose an applicant</option>{% for application in applications %}<option value="{{ application.id }}">{{ application.candidate.username }} · {{ application.job.title }}</option>{% endfor %}</select></label>
+        <div data-create-only>
+            <label class="field">{{ form.meeting_url.label }}{{ form.meeting_url }}{{ form.meeting_url.errors }}</label>
+            <label class="field">{{ form.calcom_event_url.label }}{{ form.calcom_event_url }}{{ form.calcom_event_url.errors }}</label>
+        </div>
+        <div class="interview-notes-field" data-notes-section>
+            <label class="field">{{ form.notes.label }}{{ form.notes }}{{ form.notes.errors }}</label>
+        </div>
+        <button class="button" type="button" data-toggle-reschedule>Reschedule interview</button>
+        <div class="interview-reschedule-fields" data-reschedule-fields hidden>
+            <label class="field">{{ form.scheduled_start.label }}{{ form.scheduled_start }}{{ form.scheduled_start.errors }}</label>
+            <label class="field">{{ form.scheduled_end.label }}{{ form.scheduled_end }}{{ form.scheduled_end.errors }}</label>
+        </div>
+        <div class="row between"><button class="button" type="button" data-close-interview>Cancel</button><button class="primary" type="submit" data-submit-interview>Schedule interview</button></div>
+    </form>
+</dialog>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const dialog = document.querySelector("[data-interview-dialog]");
+    const form = dialog?.querySelector("form");
+    if (!dialog || !form) return;
+    const idField = form.querySelector("[data-interview-id-field]");
+    const applicationField = form.querySelector("[data-application-field]");
+    const submit = form.querySelector("[data-submit-interview]");
+    const start = form.querySelector("[name='scheduled_start']");
+    const end = form.querySelector("[name='scheduled_end']");
+    const rescheduleFields = form.querySelector("[data-reschedule-fields]");
+    const toggleReschedule = form.querySelector("[data-toggle-reschedule]");
+    const notesSection = form.querySelector("[data-notes-section]");
+    const createOnlyFields = form.querySelector("[data-create-only]");
+    const setRescheduleEnabled = (enabled) => {
+        rescheduleFields.querySelectorAll("input, select, textarea").forEach((field) => {
+            field.disabled = !enabled;
+        });
+    };
+    const setCreateFieldsEnabled = (enabled) => {
+        createOnlyFields.querySelectorAll("input, select, textarea").forEach((field) => {
+            field.disabled = !enabled;
+        });
+    };
+    document.querySelector("[data-open-interview]")?.addEventListener("click", () => {
+        form.reset();
+        idField.value = "";
+        applicationField.hidden = false;
+        createOnlyFields.hidden = false;
+        submit.textContent = "Schedule interview";
+        rescheduleFields.hidden = false;
+        notesSection.hidden = false;
+        toggleReschedule.hidden = true;
+        setRescheduleEnabled(true);
+        setCreateFieldsEnabled(true);
+        dialog.showModal();
+    });
+    document.querySelectorAll("[data-reschedule-interview]").forEach((button) => button.addEventListener("click", () => {
+        idField.value = button.dataset.interviewId;
+        applicationField.hidden = true;
+        createOnlyFields.hidden = true;
+        start.value = button.dataset.start || "";
+        end.value = button.dataset.end || "";
+        submit.textContent = "Reschedule interview";
+        rescheduleFields.hidden = true;
+        notesSection.hidden = false;
+        toggleReschedule.hidden = false;
+        setRescheduleEnabled(false);
+        setCreateFieldsEnabled(false);
+        dialog.showModal();
+    }));
+    document.querySelectorAll(".cal-day[data-interview-id]").forEach((day) => day.addEventListener("click", (event) => {
+        event.preventDefault();
+        idField.value = day.dataset.interviewId;
+        applicationField.hidden = true;
+        createOnlyFields.hidden = true;
+        start.value = day.dataset.start || "";
+        end.value = day.dataset.end || "";
+        submit.textContent = "Reschedule interview";
+        rescheduleFields.hidden = true;
+        notesSection.hidden = false;
+        toggleReschedule.hidden = false;
+        setRescheduleEnabled(false);
+        setCreateFieldsEnabled(false);
+        dialog.showModal();
+    }));
+    toggleReschedule.addEventListener("click", () => {
+        rescheduleFields.hidden = !rescheduleFields.hidden;
+        notesSection.hidden = !rescheduleFields.hidden;
+        setRescheduleEnabled(!rescheduleFields.hidden);
+        toggleReschedule.textContent = rescheduleFields.hidden ? "Reschedule interview" : "Hide reschedule options";
+    });
+    dialog.querySelector("[data-close-interview]")?.addEventListener("click", () => dialog.close());
+});
+</script>
 {% endblock %}

@@ -374,7 +374,7 @@
     overflow-wrap:anywhere
 }
 .candidate-resume {
-    font:12px/1.8 'Space Grotesk','Segoe UI',sans-serif;
+    font:12px/1.8 'Rubik','Segoe UI',sans-serif;
     white-space:pre-wrap;
     overflow-wrap:anywhere;
     background:var(--bg);

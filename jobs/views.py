@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.decorators import candidate_required
+from accounts.notification_helpers import notify
 from applications.forms import ApplicationForm
 from applications.models import JobApplication, SavedJob
 from matching.services import get_or_update_match
@@ -64,6 +65,12 @@ def detail(request, job_id):
                 application.match_assessment = match.assessment
                 application.tailored_resume = build_tailored_resume(request.user, job)
                 application.save()
+                notify(
+                    job.created_by,
+                    "New job application",
+                    f"{request.user.username} applied for {job.title}.",
+                    "application",
+                )
                 messages.success(request, "Your application has been submitted.")
                 return redirect("candidate_applications")
 

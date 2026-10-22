@@ -63,6 +63,12 @@ class JobApplication(models.Model):
 
 
 class Interview(models.Model):
+    RESCHEDULE_STATUS_CHOICES = [
+        ("", "No pending request"),
+        ("pending", "Pending recruiter review"),
+        ("accepted", "Accepted"),
+        ("rejected", "Rejected"),
+    ]
     application = models.ForeignKey(
         JobApplication,
         on_delete=models.CASCADE,
@@ -73,6 +79,23 @@ class Interview(models.Model):
     meeting_url = models.URLField(blank=True)
     calcom_event_url = models.URLField(blank=True)
     notes = models.TextField(blank=True)
+    candidate_notes = models.TextField(blank=True)
+    proposed_start = models.DateTimeField(blank=True, null=True)
+    proposed_end = models.DateTimeField(blank=True, null=True)
+    reschedule_status = models.CharField(
+        max_length=20,
+        choices=RESCHEDULE_STATUS_CHOICES,
+        blank=True,
+    )
+    reschedule_requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="interview_reschedule_requests",
+    )
+    reschedule_message = models.TextField(blank=True)
+    reschedule_reason = models.TextField(blank=True)
     transcript = models.TextField(blank=True)
     summary = models.TextField(blank=True)
     created_by = models.ForeignKey(

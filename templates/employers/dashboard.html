@@ -5,7 +5,6 @@
 {% block content %}
 <div class="page-head">
     <div>
-        <p class="eyebrow">RECRUITER WORKSPACE</p>
         <h1>Good morning, {{ request.user.username }}.</h1>
         <p class="sub">Review candidates and keep your hiring moving.</p>
     </div>
@@ -33,6 +32,15 @@
 
     <aside class="aside dashboard-aside">
         <div class="card"><div class="section-heading"><h2>Upcoming interviews</h2><span>□</span></div>{% for interview in upcoming_interviews %}<h3>{{ interview.application.job.title }}</h3><p class="section-description">{{ interview.scheduled_start|date:"d M Y, H:i" }}</p>{% empty %}<p class="section-description">No upcoming interviews.</p>{% endfor %}<a class="button small" href="{% url 'recruiter_calendar' %}">Open calendar</a></div>
+        {% if pending_reschedules %}
+        <div class="card">
+            <h2>Reschedule requests</h2>
+            {% for interview in pending_reschedules %}
+            <p class="section-description"><b>{{ interview.application.candidate.username }}</b> requested a new time for {{ interview.application.job.title }}.</p>
+            {% endfor %}
+            <a class="button small" href="{% url 'recruiter_calendar' %}">Review requests</a>
+        </div>
+        {% endif %}
     </aside>
 </div>
 {% endblock %}

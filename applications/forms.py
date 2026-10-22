@@ -69,3 +69,38 @@ class InterviewForm(forms.ModelForm):
         if start and end and end <= start:
             self.add_error("scheduled_end", "End time must be after the start time.")
         return cleaned
+
+
+class CandidateInterviewForm(forms.ModelForm):
+    requested_start = forms.DateTimeField(
+        required=False,
+        input_formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"],
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+    )
+    requested_end = forms.DateTimeField(
+        required=False,
+        input_formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"],
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+    )
+    reschedule_reason = forms.CharField(
+        required=False,
+        label="Reason for rescheduling",
+        widget=forms.Textarea(attrs={"rows": 4}),
+    )
+
+    class Meta:
+        model = Interview
+        fields = ["requested_start", "requested_end", "reschedule_reason", "candidate_notes"]
+        widgets = {
+            "candidate_notes": forms.Textarea(attrs={"rows": 5}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get("requested_start")
+        end = cleaned.get("requested_end")
+        if end and not start:
+            self.add_error("requested_start", "Choose a start time when specifying an end time.")
+        if start and end and end <= start:
+            self.add_error("scheduled_end", "End time must be after the start time.")
+        return cleaned

@@ -5,11 +5,17 @@
 {% block content %}
 <div class="page-head">
     <div>
-        <p class="eyebrow">YOUR DETAILS</p>
         <h1>My profile</h1>
         <p class="sub">Your chatbot answers appear here. Update them whenever you need.</p>
     </div>
 </div>
+
+<nav class="profile-section-nav" aria-label="Profile sections">
+    <a href="#profile-details">Details</a>
+    <a href="#profile-career">Career path</a>
+    <a href="#profile-skills">Certifications &amp; skills</a>
+    <a href="#profile-connections">Connections</a>
+</nav>
 
 {% if messages %}
     {% for message in messages %}
@@ -17,46 +23,62 @@
     {% endfor %}
 {% endif %}
 
-<section class="content-columns">
-    <form class="card account-card" method="post" enctype="multipart/form-data">
+<section class="content-columns profile-layout">
+    <form class="profile-form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {% if form.non_field_errors %}
             <div class="auth-error">{{ form.non_field_errors }}</div>
         {% endif %}
 
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">PROFILE COMPLETENESS</p>
-                <h2>{{ completion_percent }}% complete</h2>
-            </div>
-        </div>
-
         <div class="form-grid">
-            <label class="field">{{ form.name.label }}{{ form.name }}{{ form.name.errors }}</label>
-            <label class="field span2">{{ form.resume.label }}{{ form.resume }}{% if profile.resume %}<small class="muted">Current file: {{ profile.resume.name }}</small>{% endif %}<small class="muted">Upload a resume, then choose “Auto-fill from resume” to fill blank profile fields. Review the extracted details before saving.</small>{{ form.resume.errors }}</label>
-            <label class="field">{{ form.email.label }}{{ form.email }}{{ form.email.errors }}</label>
-            <div class="phone-input-group span2">
-                <label class="field">{{ form.phone_country_code.label }}{{ form.phone_country_code }}{{ form.phone_country_code.errors }}</label>
-                <label class="field">{{ form.phone.label }}{{ form.phone }}{{ form.phone.errors }}</label>
-            </div>
-            <label class="field">{{ form.career.label }}{{ form.career }}{{ form.career.errors }}</label>
-            <label class="field">{{ form.specialisation.label }}{{ form.specialisation }}{{ form.specialisation.errors }}</label>
-            <label class="field span2">{{ form.career_stage.label }}{{ form.career_stage }}{{ form.career_stage.errors }}<small class="muted">This helps us order your pathway. You can change it anytime.</small></label>
-            <fieldset class="field span2 choice-fieldset">
-                <legend>{{ form.career_interests.label }}</legend>
-                <p class="muted">Only the directions you select will appear in your readiness dashboard.</p>
-                {{ form.career_interests }}
-                {{ form.career_interests.errors }}
-            </fieldset>
-            <label class="field">{{ form.education.label }}{{ form.education }}{{ form.education.errors }}</label>
-            <label class="field span2">{{ form.institution.label }}{{ form.institution }}{{ form.institution.errors }}</label>
-            <label class="field span2">{{ form.experience.label }}{{ form.experience }}{{ form.experience.errors }}</label>
-            <label class="field span2">{{ form.certifications.label }}{{ form.certifications }}{{ form.certifications.errors }}</label>
-            <label class="field span2">{{ form.skills.label }}{{ form.skills }}{{ form.skills.errors }}</label>
-            <label class="field span2">{{ form.portfolio.label }}{{ form.portfolio }}{{ form.portfolio.errors }}</label>
-            <label class="field span2">{{ form.awards.label }}{{ form.awards }}{{ form.awards.errors }}</label>
-            <label class="field">{{ form.linkedin.label }}{{ form.linkedin }}{{ form.linkedin.errors }}</label>
-            <label class="field">{{ form.visa.label }}{{ form.visa }}{{ form.visa.errors }}</label>
+            <section class="profile-form-section" id="profile-details">
+                <div class="profile-form-section-heading">
+                    <div><p class="eyebrow">PROFILE COMPLETENESS</p><h2>{{ completion_percent }}% complete</h2></div>
+                    <div><h3>Details</h3><p>Keep your contact and resume information up to date.</p></div>
+                </div>
+                <div class="form-grid">
+                    <label class="field">{{ form.name.label }}{{ form.name }}{{ form.name.errors }}</label>
+                    <label class="field span2">{{ form.resume.label }}{{ form.resume }}{% if profile.resume %}<small class="muted">Current file: {{ profile.resume.name }}</small>{% endif %}<small class="muted">Upload a resume, then choose “Auto-fill from resume” to fill blank profile fields. Review the extracted details before saving.</small>{{ form.resume.errors }}</label>
+                    <label class="field">{{ form.email.label }}{{ form.email }}{{ form.email.errors }}</label>
+                    <div class="phone-input-group span2">
+                        <label class="field">{{ form.phone_country_code.label }}{{ form.phone_country_code }}{{ form.phone_country_code.errors }}</label>
+                        <label class="field">{{ form.phone.label }}{{ form.phone }}{{ form.phone.errors }}</label>
+                    </div>
+                </div>
+            </section>
+            <section class="profile-form-section" id="profile-career">
+                <div class="profile-form-section-heading"><h3>Career path</h3><p>Shape the career directions and experience shown in your profile.</p></div>
+                <div class="form-grid">
+                    <label class="field">{{ form.career.label }}{{ form.career }}{{ form.career.errors }}</label>
+                    <label class="field">{{ form.specialisation.label }}{{ form.specialisation }}{{ form.specialisation.errors }}</label>
+                    <label class="field span2">{{ form.career_stage.label }}{{ form.career_stage }}{{ form.career_stage.errors }}<small class="muted">This helps us order your pathway. You can change it anytime.</small></label>
+                    <fieldset class="field span2 choice-fieldset">
+                        <legend>{{ form.career_interests.label }}</legend>
+                        <p class="muted">Only the directions you select will appear in your readiness dashboard.</p>
+                        {{ form.career_interests }}
+                        {{ form.career_interests.errors }}
+                    </fieldset>
+                    <label class="field">{{ form.education.label }}{{ form.education }}{{ form.education.errors }}</label>
+                    <label class="field span2">{{ form.institution.label }}{{ form.institution }}{{ form.institution.errors }}</label>
+                    <label class="field span2">{{ form.experience.label }}{{ form.experience }}{{ form.experience.errors }}</label>
+                </div>
+            </section>
+            <section class="profile-form-section" id="profile-skills">
+                <div class="profile-form-section-heading"><h3>Certifications &amp; skills</h3><p>Highlight the capabilities and achievements you want recruiters to notice.</p></div>
+                <div class="form-grid">
+                    <label class="field span2">{{ form.certifications.label }}{{ form.certifications }}{{ form.certifications.errors }}</label>
+                    <label class="field span2">{{ form.skills.label }}{{ form.skills }}{{ form.skills.errors }}</label>
+                </div>
+            </section>
+            <section class="profile-form-section" id="profile-connections">
+                <div class="profile-form-section-heading"><h3>Connections</h3><p>Share relevant links and work preferences.</p></div>
+                <div class="form-grid">
+                    <label class="field span2">{{ form.portfolio.label }}{{ form.portfolio }}{{ form.portfolio.errors }}</label>
+                    <label class="field span2">{{ form.awards.label }}{{ form.awards }}{{ form.awards.errors }}</label>
+                    <label class="field">{{ form.linkedin.label }}{{ form.linkedin }}{{ form.linkedin.errors }}</label>
+                    <label class="field">{{ form.visa.label }}{{ form.visa }}{{ form.visa.errors }}</label>
+                </div>
+            </section>
         </div>
 
         <div class="static-page-actions">

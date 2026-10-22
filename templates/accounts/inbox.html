@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Inbox · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Inbox</h1>
+        <p class="sub">Application updates and interview notifications.</p>
+    </div>
+</div>
+<section class="inbox-list">
+    {% for notification in notifications %}
+    <article class="card inbox-item{% if not notification.is_read %} unread{% endif %}">
+        <div class="row between">
+            <h2>{{ notification.title }}</h2>
+            <time class="muted">{{ notification.created_at|date:"d M Y, H:i" }}</time>
+        </div>
+        <p>{{ notification.body }}</p>
+    </article>
+    {% empty %}
+    <div class="card"><p class="sub">Your inbox is clear.</p></div>
+    {% endfor %}
+</section>
+{% endblock %}

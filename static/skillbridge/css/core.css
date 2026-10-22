@@ -17,7 +17,7 @@ body {
     margin:0;
     background:var(--bg);
     color:var(--ink);
-    font-family:Inter,Arial,sans-serif;
+    font-family:Rubik,Arial,sans-serif;
     font-size:14px
 }
 button,input,select,textarea {

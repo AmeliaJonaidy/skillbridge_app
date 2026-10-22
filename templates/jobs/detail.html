@@ -58,7 +58,7 @@
         {% for message in messages %}<p class="sub">{{ message }}</p>{% endfor %}
     {% endif %}
 
-    <div class="static-page-actions">
+    <div class="static-page-actions job-detail-actions">
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="{% if is_saved %}unsave{% else %}save{% endif %}">

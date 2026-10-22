@@ -7,9 +7,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from accounts.models import UserProfile
+from accounts.notification_helpers import notify
 from accounts.choices import CAREER_INTEREST_CHOICES, PHONE_COUNTRY_CODE_CHOICES
 from accounts.calendar import build_month_calendar
 from accounts.decorators import candidate_required
+from accounts.notification_helpers import notify
+from applications.forms import CandidateInterviewForm
 from applications.models import Interview, JobApplication, SavedJob
 from jobs.forms import JobFilterForm
 from jobs.models import Job
@@ -275,8 +278,50 @@ def applications(request):
 @candidate_required
 def calendar(request):
     interviews = Interview.objects.filter(application__candidate=request.user).select_related("application__job__company")
+    interview_id = request.POST.get("interview_id")
+    interview = get_object_or_404(interviews, pk=interview_id) if interview_id else None
+    form = CandidateInterviewForm(request.POST or None, instance=interview)
+    if request.method == "POST" and form.is_valid():
+        candidate_notes = form.cleaned_data["candidate_notes"]
+        interview.candidate_notes = candidate_notes
+        requested_start = form.cleaned_data.get("requested_start")
+        requested_end = form.cleaned_data.get("requested_end")
+        if requested_start:
+            interview.proposed_start = requested_start
+            interview.proposed_end = requested_end
+            interview.reschedule_status = "pending"
+            interview.reschedule_requested_by = request.user
+            interview.reschedule_reason = form.cleaned_data.get("reschedule_reason", "")
+            interview.reschedule_message = "The candidate requested a new interview time."
+            notify(
+                interview.application.job.created_by,
+                "Interview reschedule requested",
+                f"{request.user.username} requested a new time for {interview.application.job.title}. Reason: {interview.reschedule_reason or 'No reason provided.'}",
+                "interview",
+            )
+            messages.success(request, "Your reschedule request was sent to the recruiter.")
+        else:
+            messages.success(request, "Interview notes saved.")
+        interview.save(update_fields=[
+            "candidate_notes",
+            "proposed_start",
+            "proposed_end",
+            "reschedule_status",
+            "reschedule_requested_by",
+            "reschedule_message",
+            "reschedule_reason",
+        ])
+        return redirect("candidate_calendar")
     calendar_data = build_month_calendar(interviews, request.GET.get("month"), request.GET.get("date"))
-    return render(request, "candidates/calendar.html", _context(request, interviews=interviews, calendar=calendar_data))
+    now = timezone.now()
+    return render(request, "candidates/calendar.html", _context(
+        request,
+        interviews=interviews,
+        upcoming_interviews=interviews.filter(scheduled_start__gte=now),
+        past_interviews=interviews.filter(scheduled_start__lt=now),
+        form=form,
+        calendar=calendar_data,
+    ))
 
 
 @candidate_required
@@ -399,6 +444,7 @@ def saved_jobs(request):
 def dashboard_context(request):
     applications = JobApplication.objects.filter(candidate=request.user)
     interviews = Interview.objects.filter(application__candidate=request.user).select_related("application__job__company")
+    now = timezone.now()
     profile = _current_profile(request)
     profile_data = (profile.profile_data if profile else {}) or {}
     interests = _selected_career_interests(profile_data)
@@ -406,10 +452,10 @@ def dashboard_context(request):
         "role": "candidate",
         "has_pro": profile.is_pro if profile else False,
         "application_count": applications.count(),
-        "interview_count": interviews.count(),
+        "interview_count": interviews.filter(scheduled_start__gte=now).count(),
         "saved_count": SavedJob.objects.filter(candidate=request.user).count(),
         "profile_completion": _completion_percent(profile) if profile else 0,
-        "upcoming_interviews": interviews[:1],
+        "upcoming_interviews": interviews.filter(scheduled_start__gte=now)[:1],
         "recent_jobs": Job.objects.filter(status="open").select_related("company")[:3],
         "career_progress": career_progress(request.user, interests),
     }

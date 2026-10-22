@@ -26,6 +26,7 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('signup/', views.signup_view, name='signup'),
     path('logout/', views.logout_view, name='logout'),
+    path('inbox/', views.inbox, name='inbox'),
     path('onboarding/', views.onboarding, name='onboarding'),
     path('plans/', views.plans, name='plans'),
     path('plans/checkout/confirm/', views.pro_checkout_confirm, name='pro_checkout_confirm'),
