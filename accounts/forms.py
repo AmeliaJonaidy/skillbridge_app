@@ -35,8 +35,19 @@ class OnboardingForm(forms.Form):
         field_kwargs = {"label": label, "required": required}
         if field_type == "textarea":
             self.fields[field_name] = forms.CharField(widget=forms.Textarea(attrs={"rows": 4}), **field_kwargs)
+        elif field_type == "file":
+            self.fields[field_name] = forms.FileField(
+                widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.doc,.docx,.txt"}),
+                **field_kwargs,
+            )
         elif field_type == "choice":
             self.fields[field_name] = forms.ChoiceField(choices=_normalise_choices(choices), widget=forms.RadioSelect, **field_kwargs)
+        elif field_type == "multi":
+            self.fields[field_name] = forms.MultipleChoiceField(
+                choices=_normalise_choices(choices),
+                widget=forms.CheckboxSelectMultiple,
+                **field_kwargs,
+            )
         elif field_type == "select":
             self.fields[field_name] = forms.ChoiceField(choices=[("", "Choose an option")] + _normalise_choices(choices), **field_kwargs)
         else:

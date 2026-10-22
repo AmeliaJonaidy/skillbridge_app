@@ -6,7 +6,7 @@
 <article class="card job-detail">
     <p class="eyebrow">{{ job.industry|default:"OPPORTUNITY" }} · {{ job.location|default:"Location not specified" }}</p>
     <h1>{{ job.title }}</h1>
-    <p class="sub">{{ job.company.name }} · {{ job.get_employment_type_display }}{% if job.stipend %} · {{ job.stipend }}{% endif %}</p>
+    <p class="sub">{{ job.company.name }} · {{ job.get_employment_type_display }}{% if job.salary_display %} · {{ job.salary_display }}{% endif %}</p>
 
     <div class="divider"></div>
 
@@ -22,17 +22,37 @@
         {% endfor %}
     </div>
 
+    {% if has_pro %}
     <div class="card match-summary">
         <div class="section-heading">
             <div>
                 <p class="eyebrow">YOUR READINESS</p>
-                <h2>{{ match.score }}% skills match</h2>
+                <h2>{{ match.score }}% fit score</h2>
             </div>
-            {% if application %}<span class="pill progress-green">{{ application.get_status_display }}</span>{% endif %}
+            <div>{% if match.assessment %}<span class="pill">{{ match.assessment }}</span>{% endif %}{% if application %}<span class="pill progress-green">{{ application.get_status_display }}</span>{% endif %}</div>
         </div>
         <p class="sub">Matched skills: {{ match.matched_skills|join:", "|default:"None yet" }}</p>
         <p class="sub">Skills to develop: {{ match.missing_skills|join:", "|default:"None" }}</p>
+        {% if match.missing_skills %}<a class="button small" href="{% url 'candidate_learning' %}?job={{ job.id }}">See certifications to bridge this gap →</a>{% endif %}
+        <h3>How this score is assessed</h3>
+        <div class="tag-list">
+            {% for label, component in match.score_breakdown.items %}
+                <span class="tag">{{ label|title }}: {{ component.earned }}/{{ component.max }}</span>
+            {% endfor %}
+        </div>
     </div>
+    {% else %}
+    <div class="card match-summary">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">SKILLBRIDGE PRO</p>
+                <h2>Unlock your readiness score</h2>
+            </div>
+            <a class="button small" href="{% url 'plans' %}">View Pro →</a>
+        </div>
+        <p class="sub">Pro compares your resume with this job to show matched skills, missing skills, and how ready you are to apply.</p>
+    </div>
+    {% endif %}
 
     {% if messages %}
         {% for message in messages %}<p class="sub">{{ message }}</p>{% endfor %}
@@ -42,7 +62,10 @@
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="{% if is_saved %}unsave{% else %}save{% endif %}">
-            <button class="button" type="submit">{% if is_saved %}Remove from saved jobs{% else %}Save job{% endif %}</button>
+            <button class="button star-action {% if is_saved %}saved{% endif %}" type="submit">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"></path></svg>
+                {% if is_saved %}Remove from saved jobs{% else %}Save job{% endif %}
+            </button>
         </form>
         <form method="post">
             {% csrf_token %}
@@ -56,11 +79,19 @@
     {% else %}
         <div class="divider"></div>
         <h2>Apply for this job</h2>
+        {% if profile_missing_fields %}
+            <div class="card profile-message">
+                <strong>Complete your essential profile first.</strong>
+                <p class="sub">Add your name, career area, and specialisation so the recruiter can understand your application.</p>
+                <a class="button small" href="{% url 'candidate_profile' %}">Complete profile →</a>
+            </div>
+        {% endif %}
         <form method="post" class="stack">
             {% csrf_token %}
             <input type="hidden" name="action" value="apply">
             <label class="field">
-                Cover note
+                Tailored cover letter draft
+                <small class="muted">This draft uses the job description and relevant evidence in your profile or resume. Edit it so it reflects your own voice before submitting.</small>
                 {{ form.cover_note }}
             </label>
             <button class="primary" type="submit">Submit application →</button>

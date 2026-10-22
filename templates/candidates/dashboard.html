@@ -58,6 +58,31 @@
             <progress value="{{ profile_completion }}" max="100"></progress>
             <p class="section-description"><a href="{% url 'candidate_profile' %}">Update your background</a> to improve your matches.</p>
         </div>
+        <div class="card dashboard-career-progress">
+            <div class="section-heading">
+                <div>
+                    <h2>Career readiness</h2>
+                    <p class="section-description">Progress for the directions you selected.</p>
+                </div>
+            </div>
+            {% for goal in career_progress %}
+                <div class="dashboard-progress-item">
+                    <div class="row between">
+                        <div>
+                            <strong>{{ goal.label }}</strong>
+                            <span class="section-description">Starting level: {{ goal.current_stage_label }}</span>
+                        </div>
+                        <strong>{{ goal.percent }}%</strong>
+                    </div>
+                    <progress value="{{ goal.percent }}" max="100" aria-label="{{ goal.label }} readiness"></progress>
+                    {% if goal.missing %}<p class="section-description">Next skills: {{ goal.missing|join:", " }}</p>{% endif %}
+                    <a class="text-link" href="{% url 'candidate_learning' %}?direction={{ goal.key }}">View {{ goal.label }} roadmap →</a>
+                </div>
+            {% empty %}
+                <p class="section-description">Select career directions to start tracking progress.</p>
+            {% endfor %}
+            <a class="button small" href="{% url 'candidate_learning' %}">View progress and certifications →</a>
+        </div>
     </aside>
 </div>
 {% endblock %}

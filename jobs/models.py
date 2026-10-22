@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 
+from employers.choices import INDUSTRY_CHOICES
 from employers.models import Company
 
 
@@ -23,6 +24,18 @@ class Job(models.Model):
         ("open", "Open"),
         ("closed", "Closed"),
     ]
+    CURRENCY_CHOICES = [
+        ("SGD", "SGD — Singapore dollar"),
+        ("USD", "USD — US dollar"),
+        ("EUR", "EUR — Euro"),
+        ("GBP", "GBP — Pound sterling"),
+        ("AUD", "AUD — Australian dollar"),
+    ]
+    SALARY_PERIOD_CHOICES = [
+        ("hour", "per hour"),
+        ("month", "per month"),
+        ("year", "per year"),
+    ]
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="jobs")
     created_by = models.ForeignKey(
@@ -32,7 +45,7 @@ class Job(models.Model):
     )
     title = models.CharField(max_length=200)
     description = models.TextField()
-    industry = models.CharField(max_length=100, blank=True)
+    industry = models.CharField(max_length=100, choices=INDUSTRY_CHOICES, blank=True)
     location = models.CharField(max_length=120, blank=True)
     employment_type = models.CharField(max_length=30, choices=EMPLOYMENT_TYPES)
     experience_level = models.CharField(
@@ -42,6 +55,8 @@ class Job(models.Model):
     )
     salary_min = models.PositiveIntegerField(blank=True, null=True)
     salary_max = models.PositiveIntegerField(blank=True, null=True)
+    salary_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="SGD")
+    salary_period = models.CharField(max_length=10, choices=SALARY_PERIOD_CHOICES, default="month")
     stipend = models.CharField(max_length=120, blank=True)
     required_skills = models.TextField(blank=True)
     preferred_skills = models.TextField(blank=True)
@@ -70,3 +85,17 @@ class Job(models.Model):
     @property
     def preferred_skill_list(self):
         return self.split_skills(self.preferred_skills)
+
+    @property
+    def salary_display(self):
+        if self.salary_min is None and self.salary_max is None:
+            return self.stipend
+        symbol = {"SGD": "S$", "USD": "US$", "EUR": "€", "GBP": "£", "AUD": "A$"}.get(self.salary_currency, self.salary_currency)
+        if self.salary_min is not None and self.salary_max is not None:
+            amount = f"{symbol}{self.salary_min:,}–{symbol}{self.salary_max:,}"
+        elif self.salary_min is not None:
+            amount = f"From {symbol}{self.salary_min:,}"
+        else:
+            amount = f"Up to {symbol}{self.salary_max:,}"
+        period = dict(self.SALARY_PERIOD_CHOICES).get(self.salary_period, self.salary_period)
+        return f"{amount} {period}"

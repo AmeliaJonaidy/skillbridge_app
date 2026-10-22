@@ -26,13 +26,13 @@
 
 <div class="card table-wrap">
     <table>
-        <thead><tr><th>Candidate</th><th>Role</th><th>Skills match</th><th>Status</th><th>Update</th></tr></thead>
+        <thead><tr><th>Candidate</th><th>Role</th><th>Fit score</th><th>Status</th><th>Update</th></tr></thead>
         <tbody>
             {% for application in applications %}
                 <tr>
                     <td><a href="{% url 'recruiter_applicant_detail' application.id %}">{{ application.candidate.username }}</a></td>
                     <td>{{ application.job.title }}</td>
-                    <td>{% if application.match_score is not None %}{{ application.match_score }}%{% else %}—{% endif %}</td>
+                    <td>{% if has_pro and application.match_score is not None %}{{ application.match_score }}%{% elif not has_pro %}<a href="{% url 'plans' %}">Pro ranking</a>{% else %}—{% endif %}</td>
                     <td><span class="pill {% if application.status == 'shortlisted' or application.status == 'interview' %}progress-green{% endif %}">{{ application.get_status_display }}</span></td>
                     <td>
                         <form method="post" class="row">
@@ -41,6 +41,14 @@
                             {{ status_form.status }}
                             <button type="submit">Save</button>
                         </form>
+                        {% if application.status == "submitted" %}
+                            <form method="post" class="row" style="margin-top: 8px">
+                                {% csrf_token %}
+                                <input type="hidden" name="application_id" value="{{ application.id }}">
+                                <input type="hidden" name="status" value="shortlisted">
+                                <button class="button small" type="submit">Shortlist</button>
+                            </form>
+                        {% endif %}
                     </td>
                 </tr>
             {% empty %}

@@ -26,6 +26,51 @@ SPECIALISATION_CHOICES = [
     ("other", "Other"),
 ]
 
+CAREER_INTEREST_CHOICES = [
+    ("marketing", "Marketing"),
+    ("machine-learning", "Machine learning"),
+    ("ai-engineering", "AI engineering"),
+    ("software-engineering", "Software engineering"),
+    ("computer-science", "Computer science"),
+    ("data-science", "Data science / statistics"),
+    ("microbiology", "Microbiology"),
+    ("biomedical-science", "Biomedical science"),
+    ("bioinformatics", "Bioinformatics / computational biology"),
+    ("clinical-research", "Clinical research"),
+    ("scientific-research", "Scientific research"),
+    ("medicine-technology", "Medicine + technology"),
+    ("finance", "Finance"),
+    ("fintech", "Fintech"),
+    ("investment", "Investment / portfolio analysis"),
+    ("audit-accounting", "Audit / accounting"),
+    ("business-analysis", "Business analysis"),
+    ("ux-ui", "UX / UI design"),
+    ("cloud-devops", "Cloud / DevOps"),
+]
+
+CAREER_STAGE_CHOICES = [
+    ("exploring", "Exploring this direction"),
+    ("beginner", "Beginner"),
+    ("foundation", "Building foundations"),
+    ("intermediate", "Intermediate"),
+    ("advanced", "Advanced"),
+    ("career-switcher", "Switching into this field"),
+]
+
+PHONE_COUNTRY_CODE_CHOICES = [
+    ("+65", "Singapore (+65)"),
+    ("+60", "Malaysia (+60)"),
+    ("+62", "Indonesia (+62)"),
+    ("+91", "India (+91)"),
+    ("+86", "China (+86)"),
+    ("+852", "Hong Kong (+852)"),
+    ("+81", "Japan (+81)"),
+    ("+82", "South Korea (+82)"),
+    ("+61", "Australia (+61)"),
+    ("+44", "United Kingdom (+44)"),
+    ("+1", "United States / Canada (+1)"),
+]
+
 EDUCATION_CHOICES = [
     ("secondary", "Secondary school"),
     ("diploma", "Diploma"),

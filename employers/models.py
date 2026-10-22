@@ -1,13 +1,17 @@
 from django.conf import settings
 from django.db import models
 
+from .choices import INDUSTRY_CHOICES
+
 
 class Company(models.Model):
     name = models.CharField(max_length=200)
     website = models.URLField(blank=True)
-    industry = models.CharField(max_length=100, blank=True)
+    industry = models.CharField(max_length=100, choices=INDUSTRY_CHOICES, blank=True)
     description = models.TextField(blank=True)
     logo_url = models.URLField(blank=True)
+    linkedin_url = models.URLField(blank=True)
+    linkedin_organization_id = models.CharField(max_length=100, blank=True)
     verification_status = models.CharField(max_length=30, default="pending")
 
     def __str__(self):

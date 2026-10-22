@@ -18,7 +18,7 @@
 {% endif %}
 
 <section class="content-columns">
-    <form class="card account-card" method="post">
+    <form class="card account-card" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {% if form.non_field_errors %}
             <div class="auth-error">{{ form.non_field_errors }}</div>
@@ -33,10 +33,21 @@
 
         <div class="form-grid">
             <label class="field">{{ form.name.label }}{{ form.name }}{{ form.name.errors }}</label>
+            <label class="field span2">{{ form.resume.label }}{{ form.resume }}{% if profile.resume %}<small class="muted">Current file: {{ profile.resume.name }}</small>{% endif %}<small class="muted">Upload a resume, then choose “Auto-fill from resume” to fill blank profile fields. Review the extracted details before saving.</small>{{ form.resume.errors }}</label>
             <label class="field">{{ form.email.label }}{{ form.email }}{{ form.email.errors }}</label>
-            <label class="field">{{ form.phone.label }}{{ form.phone }}{{ form.phone.errors }}</label>
+            <div class="phone-input-group span2">
+                <label class="field">{{ form.phone_country_code.label }}{{ form.phone_country_code }}{{ form.phone_country_code.errors }}</label>
+                <label class="field">{{ form.phone.label }}{{ form.phone }}{{ form.phone.errors }}</label>
+            </div>
             <label class="field">{{ form.career.label }}{{ form.career }}{{ form.career.errors }}</label>
             <label class="field">{{ form.specialisation.label }}{{ form.specialisation }}{{ form.specialisation.errors }}</label>
+            <label class="field span2">{{ form.career_stage.label }}{{ form.career_stage }}{{ form.career_stage.errors }}<small class="muted">This helps us order your pathway. You can change it anytime.</small></label>
+            <fieldset class="field span2 choice-fieldset">
+                <legend>{{ form.career_interests.label }}</legend>
+                <p class="muted">Only the directions you select will appear in your readiness dashboard.</p>
+                {{ form.career_interests }}
+                {{ form.career_interests.errors }}
+            </fieldset>
             <label class="field">{{ form.education.label }}{{ form.education }}{{ form.education.errors }}</label>
             <label class="field span2">{{ form.institution.label }}{{ form.institution }}{{ form.institution.errors }}</label>
             <label class="field span2">{{ form.experience.label }}{{ form.experience }}{{ form.experience.errors }}</label>
@@ -50,6 +61,8 @@
 
         <div class="static-page-actions">
             <button class="primary" type="submit">Save profile</button>
+            <button class="button" type="submit" name="action" value="autofill" {% if not profile.resume %}disabled{% endif %}>Auto-fill from resume</button>
+            {% if profile.resume %}<a class="button" href="{% url 'candidate_resume' %}">Review resume</a>{% endif %}
             <a class="button" href="{% url 'onboarding' %}">Resume profile questions</a>
         </div>
     </form>

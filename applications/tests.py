@@ -9,7 +9,8 @@ from accounts.models import UserProfile
 from employers.models import Company, RecruiterProfile
 from jobs.models import Job
 
-from .models import Interview, JobApplication
+from .forms import InterviewForm
+from .models import Interview, JobApplication, SavedJob
 
 
 class ApplicationWorkflowTests(TestCase):
@@ -22,7 +23,12 @@ class ApplicationWorkflowTests(TestCase):
         UserProfile.objects.create(
             user=self.candidate,
             role="candidate",
-            profile_data={"skills": "Python, Django"},
+            profile_data={
+                "name": "Test Candidate",
+                "career": "technology",
+                "specialisation": "backend",
+                "skills": "Python, Django",
+            },
         )
         self.recruiter = User.objects.create_user(
             username="recruiter",
@@ -50,8 +56,9 @@ class ApplicationWorkflowTests(TestCase):
 
         self.assertRedirects(response, reverse("candidate_applications"))
         application = JobApplication.objects.get(candidate=self.candidate, job=self.job)
-        self.assertEqual(application.match_score, 67)
+        self.assertEqual(application.match_score, 74)
         self.assertEqual(application.missing_skills, ["JavaScript"])
+        self.assertEqual(application.match_breakdown["required_skills"], {"earned": 40, "max": 60})
 
     def test_recruiter_can_update_status_and_schedule_interview(self):
         JobApplication.objects.create(candidate=self.candidate, job=self.job)
@@ -71,9 +78,75 @@ class ApplicationWorkflowTests(TestCase):
             {
                 "application_id": application.pk,
                 "scheduled_start": "2026-10-22T14:00",
-                "meeting_url": "https://cal.com/interview",
+                "meeting_url": "cal.com/interview",
                 "notes": "Technical discussion",
             },
         )
         self.assertRedirects(response, reverse("recruiter_calendar"))
         self.assertEqual(Interview.objects.filter(application=application).count(), 1)
+        self.assertEqual(self.client.get(reverse("recruiter_calendar")).status_code, 200)
+
+        self.client.force_login(self.candidate)
+        self.assertEqual(self.client.get(reverse("candidate_calendar")).status_code, 200)
+
+    def test_candidate_only_sees_open_jobs(self):
+        draft_job = Job.objects.create(
+            company=self.company,
+            created_by=self.recruiter,
+            title="Hidden draft",
+            description="Not published yet.",
+            employment_type="internship",
+            status="draft",
+        )
+        self.client.force_login(self.candidate)
+
+        response = self.client.get(reverse("candidate_jobs"))
+
+        self.assertNotContains(response, draft_job.title)
+        self.assertContains(response, self.job.title)
+
+    def test_candidate_can_star_and_unstar_a_job(self):
+        self.client.force_login(self.candidate)
+
+        response = self.client.post(
+            reverse("job_detail", args=[self.job.pk]),
+            {"action": "save"},
+        )
+        self.assertRedirects(response, reverse("job_detail", args=[self.job.pk]))
+        self.assertTrue(SavedJob.objects.filter(candidate=self.candidate, job=self.job).exists())
+
+        response = self.client.get(reverse("job_detail", args=[self.job.pk]))
+        self.assertContains(response, "star-action saved")
+
+        self.client.post(
+            reverse("job_detail", args=[self.job.pk]),
+            {"action": "unsave"},
+        )
+        self.assertFalse(SavedJob.objects.filter(candidate=self.candidate, job=self.job).exists())
+
+    def test_candidate_needs_essential_profile_details_before_applying(self):
+        self.candidate.profile.profile_data = {"skills": "Python, Django"}
+        self.candidate.profile.save(update_fields=["profile_data"])
+        self.client.force_login(self.candidate)
+
+        response = self.client.post(
+            reverse("job_detail", args=[self.job.pk]),
+            {"action": "apply", "cover_note": "Interested."},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Complete your essential profile first")
+        self.assertFalse(JobApplication.objects.filter(candidate=self.candidate, job=self.job).exists())
+
+    def test_calcom_url_without_scheme_is_normalised(self):
+        form = InterviewForm(
+            data={
+                "scheduled_start": "2026-10-22T14:00",
+                "meeting_url": "cal.com/interview",
+                "calcom_event_url": "cal.com/event",
+            }
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["meeting_url"], "https://cal.com/interview")
+        self.assertEqual(form.cleaned_data["calcom_event_url"], "https://cal.com/event")

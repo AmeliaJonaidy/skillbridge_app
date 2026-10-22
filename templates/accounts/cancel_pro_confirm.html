@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Cancel Pro · SkillBridge{% endblock %}
+
+{% block content %}
+<article class="card static-page">
+    <p class="eyebrow">MANAGE YOUR PLAN</p>
+    <h1>Cancel SkillBridge Pro?</h1>
+    <p class="sub">Please confirm that you want to cancel your Pro subscription.</p>
+
+    <div class="card profile-message">
+        <h2>What happens next?</h2>
+        <p>Your Pro subscription will be cancelled and your account will return to the Free plan immediately.</p>
+        <p>You will not be charged for future months. If you want Pro again later, you will need to pay for a new monthly subscription.</p>
+    </div>
+
+    <div class="static-page-actions">
+        <form method="post" action="{% url 'cancel_pro' %}">
+            {% csrf_token %}
+            <button class="button button-danger" type="submit">Yes, cancel Pro</button>
+        </form>
+        <a class="primary button" href="{% url 'plans' %}">Keep Pro</a>
+    </div>
+</article>
+{% endblock %}

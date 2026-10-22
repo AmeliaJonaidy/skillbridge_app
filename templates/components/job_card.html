@@ -1,6 +1,12 @@
 <article class="card job-card">
     <div class="job-card-header">
-        <div class="company-logo">{{ job.company.name|first|default:"N" }}</div>
+        {% if job.company.logo_url %}
+            <div class="company-logo company-logo-image">
+                <img src="{{ job.company.logo_url }}" alt="{{ job.company.name }} logo" width="40" height="40">
+            </div>
+        {% else %}
+            <div class="company-logo">{{ job.company.name|first|default:"N" }}</div>
+        {% endif %}
         <div>
             <h3>{{ job.title }}</h3>
             <p class="muted">{{ job.company.name }} · {{ job.industry|default:"Technology" }}</p>
@@ -8,8 +14,8 @@
         <form method="post" action="{% url 'job_detail' job.id %}">
             {% csrf_token %}
             <input type="hidden" name="action" value="{% if is_saved %}unsave{% else %}save{% endif %}">
-            <button class="icon-button" type="submit" aria-label="{% if is_saved %}Remove saved job{% else %}Save job{% endif %}">
-                {% if is_saved %}♥{% else %}♡{% endif %}
+            <button class="icon-button star-button {% if is_saved %}saved{% endif %}" type="submit" aria-label="{% if is_saved %}Remove saved job{% else %}Save job{% endif %}" title="{% if is_saved %}Remove saved job{% else %}Save job{% endif %}">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"></path></svg>
             </button>
         </form>
     </div>
@@ -17,7 +23,7 @@
     <div class="job-meta">
         <span>⌖ {{ job.location|default:"Location not specified" }}</span>
         <span>◷ {{ job.get_employment_type_display }}</span>
-        {% if job.stipend %}<span>{{ job.stipend }}</span>{% endif %}
+        {% if job.salary_display %}<span>{{ job.salary_display }}</span>{% endif %}
     </div>
 
     <div class="tag-list">
@@ -29,11 +35,19 @@
     </div>
 
     <div class="job-card-footer">
-        {% if match %}
-            <span class="match-label">{{ match.score }}% skills match</span>
+        {% if has_pro and match %}
+            <div>
+                <span class="match-label">{{ match.score }}% compatibility · {{ match.assessment }}</span>
+                {% if match.missing_skills %}<p class="muted">Gap: {{ match.missing_skills|join:", " }}</p>{% endif %}
+            </div>
+        {% elif not has_pro %}
+            <span class="match-label">Pro compatibility score</span>
         {% else %}
             <span class="match-label">Skills match unavailable</span>
         {% endif %}
-        <a class="button button-small" href="{% url 'job_detail' job.id %}">View job</a>
+        <div class="row">
+            {% if has_pro and match.missing_skills %}<a class="text-link" href="{% url 'candidate_learning' %}?job={{ job.id }}">Bridge gap →</a>{% endif %}
+            <a class="button button-small" href="{% url 'job_detail' job.id %}">View job</a>
+        </div>
     </div>
 </article>

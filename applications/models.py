@@ -44,6 +44,8 @@ class JobApplication(models.Model):
     match_score = models.PositiveSmallIntegerField(blank=True, null=True)
     matched_skills = models.JSONField(default=list, blank=True)
     missing_skills = models.JSONField(default=list, blank=True)
+    match_breakdown = models.JSONField(default=dict, blank=True)
+    match_assessment = models.CharField(max_length=40, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

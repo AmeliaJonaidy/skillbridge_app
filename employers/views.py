@@ -1,7 +1,9 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
 from accounts.decorators import recruiter_required
 from accounts.calendar import build_month_calendar
@@ -10,8 +12,9 @@ from applications.models import Interview, JobApplication
 from jobs.forms import JobForm
 from jobs.models import Job
 
-from .forms import CompanyForm
+from .forms import CompanyForm, CompanyLookupForm
 from .models import Company, RecruiterProfile
+from .services import lookup_company, website_logo_url
 
 def _recruiter(request):
     recruiter, _ = RecruiterProfile.objects.get_or_create(user=request.user)
@@ -23,14 +26,23 @@ def _recruiter(request):
             defaults={
                 "industry": data.get("industry", ""),
                 "website": data.get("website", ""),
+                "logo_url": website_logo_url(data.get("website", "")),
             },
         )
+        if recruiter.company and not recruiter.company.logo_url and recruiter.company.website:
+            recruiter.company.logo_url = website_logo_url(recruiter.company.website)
+            recruiter.company.save(update_fields=["logo_url"])
         recruiter.save(update_fields=["company"])
     return recruiter
 
 
 def _context(request, **extra):
-    return {"role": "recruiter", **extra}
+    profile = getattr(request.user, "profile", None)
+    return {
+        "role": "recruiter",
+        "has_pro": profile.is_pro if profile else False,
+        **extra,
+    }
 
 
 def _publish_listing(request, recruiter, form):
@@ -132,7 +144,10 @@ def applicant_detail(request, application_id):
 @recruiter_required
 def calendar(request):
     jobs = Job.objects.filter(created_by=request.user)
-    applications = JobApplication.objects.filter(job__in=jobs).select_related("candidate", "job")
+    applications = JobApplication.objects.filter(
+        job__in=jobs,
+        status__in=["shortlisted", "interview"],
+    ).select_related("candidate", "job")
     interviews = Interview.objects.filter(application__in=applications).select_related("application__candidate", "application__job")
     form = InterviewForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -153,14 +168,31 @@ def calendar(request):
 def company(request):
     recruiter = _recruiter(request)
     company = recruiter.company
-    form = CompanyForm(request.POST or None, instance=company)
+    lookup_form = CompanyLookupForm(request.GET or None)
+    lookup_data = None
+    lookup_initial = {}
+    if request.method == "GET" and lookup_form.is_valid():
+        lookup_data = lookup_company(lookup_form.cleaned_data["query"])
+        if lookup_data:
+            lookup_initial = {key: value for key, value in lookup_data.items() if key in CompanyForm().fields}
+        else:
+            messages.info(request, "No company record was found. Enter the company details manually.")
+    form = CompanyForm(request.POST or None, instance=company, initial=lookup_initial)
     if request.method == "POST" and form.is_valid():
         company = form.save()
         recruiter.company = company
         recruiter.save(update_fields=["company"])
         messages.success(request, "Company profile saved.")
         return redirect("recruiter_company")
-    return render(request, "employers/company.html", _context(request, form=form, company=company))
+    return render(request, "employers/company.html", _context(request, form=form, company=company, lookup_form=lookup_form, lookup_data=lookup_data))
+
+
+@recruiter_required
+@require_GET
+def company_lookup(request):
+    query = request.GET.get("q", "")
+    result = lookup_company(query)
+    return JsonResponse({"query": query, "result": result})
 
 
 @recruiter_required

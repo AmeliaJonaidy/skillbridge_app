@@ -8,6 +8,7 @@
         <p class="eyebrow">SKILLBRIDGE PLANS</p>
         <h1>My plans</h1>
         <p class="sub">Choose the tools that fit the way you use SkillBridge.</p>
+        <p class="pill {% if has_pro %}progress-green{% endif %}">Current plan: {{ profile.get_plan_display }}</p>
     </div>
 </div>
 
@@ -24,37 +25,64 @@
             <li>Job discovery, applications, and progress tracking</li>
             <li>Calendar and interview tracking</li>
         </ul>
-        <span class="pill progress-green">Active</span>
+        {% if not has_pro %}<span class="pill progress-green">Active</span>{% endif %}
     </article>
     <article class="card plan-card plan-card-pro">
-        <p class="eyebrow">UPGRADE PLAN</p>
+        <p class="eyebrow">{% if has_pro %}YOUR ACTIVE PLAN{% else %}UPGRADE PLAN{% endif %}</p>
         <h2>SkillBridge Pro</h2>
+        <p class="plan-price">{{ pro_plan_price }} <span>per month · test mode</span></p>
         {% if role == "candidate" %}
-        <p class="sub">Advanced job matching insights for your applications.</p>
+        <p class="sub">Make better application decisions with a clearer view of how ready you are for each job.</p>
         {% elif role == "recruiter" %}
-        <p class="sub">Advanced applicant review tools for your job listings.</p>
+        <p class="sub">Screen applicants faster and focus your time on the strongest matches.</p>
         {% endif %}
 
         {% if role == "candidate" %}
         <div class="plan-section">
-            <h3>Applicants</h3>
+            <h3>For job seekers</h3>
             <ul>
-                <li>Percentage score showing how well a job aligns with the applicant’s resume</li>
-                <li>Skill extraction from the applicant’s resume and each job description</li>
-                <li>Matched skills, missing skills, and a readiness score beside each job</li>
+                <li>See how closely your profile matches a job before you apply.</li>
+                <li>See which required and preferred skills you already have.</li>
+                <li>See the missing skills you may need to develop.</li>
+                <li>Get a clear readiness label, such as Strong fit or Developing fit.</li>
+                <li>Understand what affects your score: skills, career direction, experience, and profile evidence.</li>
+                <li>Prioritise the jobs where your current profile is strongest.</li>
             </ul>
         </div>
         {% elif role == "recruiter" %}
         <div class="plan-section">
-            <h3>Recruiters</h3>
+            <h3>For recruiters</h3>
             <ul>
-                <li>Shortlist suitable applicants</li>
-                <li>Rank applicants based on their suitability for that particular job <strong>(Pro)</strong></li>
+                <li>See a suitability score for each applicant.</li>
+                <li>Compare applicants using skills, experience, and profile evidence.</li>
+                <li>See the breakdown behind each applicant’s score.</li>
+                <li>Identify the strongest candidates more quickly.</li>
+                <li>Spend less time screening applications manually.</li>
             </ul>
         </div>
         {% endif %}
 
-        <button class="button" type="button" disabled>Upgrade coming soon</button>
+        {% if has_pro %}
+            <span class="pill progress-green">Pro active{% if profile.plan_expires_at %} until {{ profile.plan_expires_at|date:"d M Y" }}{% endif %}</span>
+            <p class="sub">Your Pro insights are available on job pages and applicant review pages.</p>
+            <a class="button button-danger" href="{% url 'cancel_pro_confirm' %}">Cancel Pro</a>
+            <p class="sub">You can cancel before the next renewal. We will ask you to confirm first.</p>
+        {% else %}
+            {% if stripe_enabled %}
+                <a class="primary button" href="{% url 'pro_checkout_confirm' %}">Continue to Pro checkout →</a>
+                <p class="sub">Pro is a monthly subscription. Stripe test mode (<code>sk_test_</code>) will charge the payment method every month until you cancel. No real card is charged in test mode.</p>
+            {% else %}
+                <button class="primary button" type="button" disabled>Continue to Pro checkout →</button>
+                <p class="sub">Add a Stripe <code>sk_test_</code> key to enable checkout. No live payments are accepted in this development build.</p>
+            {% endif %}
+        {% endif %}
     </article>
 </section>
+
+{% if payments %}
+<section class="card account-card">
+    <h2>Payment history</h2>
+    {% for payment in payments %}<p>{{ payment.provider|title }} · {{ payment.currency }} {{ payment.amount }} · {{ payment.get_status_display }} · {{ payment.created_at|date:"d M Y" }}</p>{% endfor %}
+</section>
+{% endif %}
 {% endblock %}

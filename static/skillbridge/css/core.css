@@ -536,6 +536,19 @@ main {
     font-size:21px;
     flex-shrink:0
 }
+
+.company-logo-image {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+}
+
+.company-logo-image img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
 .company-logo.purple {
     background:#f0eafa;
     color:#8462b0

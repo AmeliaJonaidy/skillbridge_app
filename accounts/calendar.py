@@ -45,7 +45,7 @@ def build_month_calendar(interviews, month_value=None, selected_value=None):
         ])
 
     previous_month = (month_date.replace(day=1) - timedelta(days=1)).replace(day=1)
-    next_month = (month_date.replace(day=28) + timezone.timedelta(days=4)).replace(day=1)
+    next_month = (month_date.replace(day=28) + timedelta(days=4)).replace(day=1)
     return {
         "month_label": month_date.strftime("%B %Y"),
         "month": month_date,

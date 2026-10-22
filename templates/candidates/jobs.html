@@ -37,7 +37,7 @@
 
 <div class="job-list">
     {% for card in job_cards %}
-        {% include "components/job_card.html" with job=card.job match=card.match is_saved=card.is_saved %}
+        {% include "components/job_card.html" with job=card.job match=card.match is_saved=card.is_saved has_pro=has_pro %}
     {% empty %}
         <div class="card">
             <h2>No jobs found</h2>

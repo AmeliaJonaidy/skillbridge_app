@@ -6,7 +6,7 @@ from applications.forms import ApplicationForm
 from applications.models import JobApplication, SavedJob
 from matching.services import get_or_update_match
 from resumes.models import TailoredResume
-from resumes.services import build_tailored_resume
+from resumes.services import build_tailored_cover_letter, build_tailored_resume
 
 from .models import Job
 
@@ -17,7 +17,17 @@ def detail(request, job_id):
     application = JobApplication.objects.filter(candidate=request.user, job=job).first()
     is_saved = SavedJob.objects.filter(candidate=request.user, job=job).exists()
     match = get_or_update_match(request.user, job)
-    form = ApplicationForm(request.POST or None)
+    form = ApplicationForm(
+        request.POST or None,
+        initial={"cover_note": build_tailored_cover_letter(request.user, job)},
+    )
+    profile = getattr(request.user, "profile", None)
+    profile_data = (profile.profile_data if profile else {}) or {}
+    profile_missing_fields = [
+        field
+        for field in ("name", "career", "specialisation")
+        if not profile_data.get(field)
+    ]
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -38,13 +48,21 @@ def detail(request, job_id):
             )
             return redirect("resume_detail", resume_id=draft.id)
         if action == "apply" and not application:
-            if form.is_valid():
+            if profile_missing_fields:
+                messages.warning(
+                    request,
+                    "Please complete your name, career area, and specialisation before applying.",
+                )
+            elif form.is_valid():
                 application = form.save(commit=False)
                 application.candidate = request.user
                 application.job = job
                 application.match_score = match.score
                 application.matched_skills = match.matched_skills
                 application.missing_skills = match.missing_skills
+                application.match_breakdown = match.score_breakdown
+                application.match_assessment = match.assessment
+                application.tailored_resume = build_tailored_resume(request.user, job)
                 application.save()
                 messages.success(request, "Your application has been submitted.")
                 return redirect("candidate_applications")
@@ -54,10 +72,12 @@ def detail(request, job_id):
         "jobs/detail.html",
         {
             "role": "candidate",
+            "has_pro": getattr(getattr(request.user, "profile", None), "is_pro", False),
             "job": job,
             "application": application,
             "is_saved": is_saved,
             "match": match,
             "form": form,
+            "profile_missing_fields": profile_missing_fields,
         },
     )

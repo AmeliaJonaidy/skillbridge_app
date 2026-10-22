@@ -18,5 +18,9 @@ class CertificationAdmin(admin.ModelAdmin):
 
 @admin.register(CandidateMilestone)
 class CandidateMilestoneAdmin(admin.ModelAdmin):
-    list_display = ("candidate", "certification", "status", "completed_at")
+    list_display = ("candidate", "certification", "status", "has_evidence", "completed_at")
     list_filter = ("status",)
+
+    @admin.display(boolean=True, description="Evidence")
+    def has_evidence(self, milestone):
+        return bool(milestone.evidence_file)

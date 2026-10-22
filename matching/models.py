@@ -14,6 +14,8 @@ class JobMatch(models.Model):
     score = models.PositiveSmallIntegerField()
     matched_skills = models.JSONField(default=list, blank=True)
     missing_skills = models.JSONField(default=list, blank=True)
+    score_breakdown = models.JSONField(default=dict, blank=True)
+    assessment = models.CharField(max_length=40, blank=True)
     created_at = models.DateTimeField(auto_now=True)
 
     class Meta:

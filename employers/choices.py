@@ -1,0 +1,15 @@
+INDUSTRY_CHOICES = [
+    ("technology", "Technology & software"),
+    ("finance", "Finance & banking"),
+    ("fintech", "Financial technology"),
+    ("healthcare", "Healthcare"),
+    ("education", "Education"),
+    ("government", "Government & public sector"),
+    ("consulting", "Consulting & professional services"),
+    ("retail", "Retail & e-commerce"),
+    ("media", "Media & entertainment"),
+    ("logistics", "Logistics & transportation"),
+    ("manufacturing", "Manufacturing"),
+    ("nonprofit", "Non-profit"),
+    ("other", "Other"),
+]

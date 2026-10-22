@@ -7,7 +7,7 @@
     <div>
         <p class="eyebrow">RESUME BUILDER</p>
         <h1>My resume</h1>
-        <p class="sub">Review the resume generated from your profile.</p>
+        <p class="sub">Review your generated resume and feedback from the uploaded source file.</p>
     </div>
 </div>
 
@@ -33,5 +33,17 @@
         <p class="sub">Choose a job to create an editable job-specific draft.</p>
         <a class="primary button" href="{% url 'candidate_jobs' %}">Choose a job</a>
     </aside>
+
+    {% if feedback %}
+    <aside class="card">
+        <h2>Resume feedback</h2>
+        <p class="sub">{{ feedback.word_count }} words · {{ feedback.present_sections|length }} sections detected</p>
+        {% if feedback.detected_skills %}<p><b>Detected skills</b><br>{{ feedback.detected_skills|join:", " }}</p>{% endif %}
+        {% if feedback.missing_sections %}<p><b>Sections to consider</b><br>{{ feedback.missing_sections|join:", " }}</p>{% endif %}
+        <ul>
+            {% for suggestion in feedback.suggestions %}<li>{{ suggestion }}</li>{% empty %}<li>Your resume has the main checks covered.</li>{% endfor %}
+        </ul>
+    </aside>
+    {% endif %}
 </div>
 {% endblock %}
