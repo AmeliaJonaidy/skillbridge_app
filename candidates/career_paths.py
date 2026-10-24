@@ -356,6 +356,7 @@ def _milestones(path, missing, recommendations):
                 "skill": stage_missing[0] if stage_missing else (stage_skills[0] if stage_skills else ""),
                 "skills": stage_skills,
                 "missing": stage_missing,
+                "percent": round((len(stage_skills) - len(stage_missing)) / len(stage_skills) * 100) if stage_skills else 0,
                 "title": stage["title"],
                 "description": "This stage is covered by your current evidence." if is_complete else f"Build {', '.join(stage_missing)} for your {path['label']} direction.",
                 "activity": stage.get("activity", ""),

@@ -823,3 +823,51 @@ button.primary {
         transform: rotate(180deg);
     }
 }
+.career-milestone > summary.career-milestone-summary {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(110px, 28%) 42px 12px !important;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    gap: 16px;
+    padding: 16px 20px;
+    list-style: none;
+}
+.career-milestone > summary.career-milestone-summary::-webkit-details-marker,
+.career-milestone > summary.career-milestone-summary::marker {
+    display: none;
+    content: "";
+}
+.career-milestone > summary.career-milestone-summary .career-milestone-heading {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    width: auto;
+}
+.career-milestone > summary.career-milestone-summary .career-milestone-progress-track {
+    grid-column: 2;
+    grid-row: 1;
+}
+.career-milestone > summary.career-milestone-summary .career-milestone-progress {
+    grid-column: 3;
+    grid-row: 1;
+}
+.career-milestone > summary.career-milestone-summary .career-milestone-toggle {
+    grid-column: 4;
+    grid-row: 1;
+}
+@media(max-width:650px) {
+    .career-milestone > summary.career-milestone-summary {
+        grid-template-columns: minmax(0, 1fr) 42px 12px !important;
+    }
+    .career-milestone > summary.career-milestone-summary .career-milestone-progress-track {
+        display: none;
+    }
+    .career-milestone > summary.career-milestone-summary .career-milestone-progress {
+        grid-column: 2;
+    }
+    .career-milestone > summary.career-milestone-summary .career-milestone-toggle {
+        grid-column: 3;
+    }
+}

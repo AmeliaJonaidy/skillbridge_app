@@ -53,16 +53,18 @@
                 <div class="career-milestone-list">
                     <p class="eyebrow">ROADMAP FROM YOUR CURRENT EVIDENCE</p>
                     {% for milestone in goal.milestones %}
-                        <article class="career-milestone {% if milestone.status == 'completed' %}is-complete{% endif %}">
-                            <span class="career-milestone-number">{{ milestone.order }}</span>
+                        <details class="career-milestone {% if milestone.status == 'completed' %}is-complete{% endif %}" {% if milestone.status != "completed" %}open{% endif %}>
+                            <summary class="career-milestone-summary">
+                                <span class="career-milestone-heading">
+                                    <strong>{{ milestone.order }}. {{ milestone.title }}</strong>
+                                    <span class="muted">{% if milestone.status == "completed" %}Stage covered{% else %}Next stage{% endif %}</span>
+                                </span>
+                                {% if milestone.status == "completed" %}<span class="pill progress-green">Completed</span>{% endif %}
+                                <span class="career-milestone-progress-track" aria-hidden="true"><span style="width: {{ milestone.percent }}%;"></span></span>
+                                <span class="career-milestone-progress" style="--completion: {{ milestone.percent }}%;" role="img" aria-label="{{ milestone.percent }}% complete">{{ milestone.percent }}%</span>
+                                <span class="career-milestone-toggle" aria-hidden="true"></span>
+                            </summary>
                             <div class="career-milestone-content">
-                                <div class="row between career-milestone-heading">
-                                    <div>
-                                        <strong>{{ milestone.title }}</strong>
-                                        <span class="muted">{% if milestone.status == "completed" %}Stage covered{% else %}Next stage{% endif %}</span>
-                                    </div>
-                                    {% if milestone.status == "completed" %}<span class="pill progress-green">Completed</span>{% endif %}
-                                </div>
                                 <p class="muted">{{ milestone.description }}</p>
                                 {% if milestone.activity %}<p><strong>Activity:</strong> {{ milestone.activity }}</p>{% endif %}
                                 {% if milestone.evidence %}<p><strong>Evidence to add:</strong> {{ milestone.evidence }}</p>{% endif %}
@@ -78,28 +80,45 @@
                                                     <a class="text-link" href="{{ course.url }}" target="_blank" rel="noopener">Open official link →</a>
                                                 </div>
                                                 <p class="muted">{{ course.reason }}</p>
-                                                {% if course.title not in profile_data.completed_career_courses %}
+                                                {% if not course.completed %}
                                                     <form method="post" enctype="multipart/form-data">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="action" value="complete_course">
                                                         <input type="hidden" name="career_key" value="{{ goal.key }}">
                                                         <input type="hidden" name="course_title" value="{{ course.title }}">
-                                                        <label class="file-upload-label">Upload certificate
-                                                            <input type="file" name="evidence_file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" required>
+                                                        <label class="certificate-id-field">Certificate ID
+                                                            <input type="text" name="certificate_id" maxlength="150" placeholder="Enter certificate ID" required>
                                                         </label>
-                                                        <button class="button small" type="submit">Upload &amp; mark completed</button>
+                                                        <button class="button small" type="submit">Mark completed</button>
                                                     </form>
                                                 {% else %}
-                                                    <span class="pill progress-green">Marked completed</span>
+                                                    <span class="pill progress-green">Marked completed{% if course.certificate_id %}: {{ course.certificate_id }}{% endif %}</span>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}
+                                        {% if goal.completed_courses %}
+                                            <div class="career-completed-courses">
+                                                <p class="eyebrow">COMPLETED CERTIFICATES</p>
+                                                {% for course in goal.completed_courses %}
+                                                    <div class="career-course career-course-completed">
+                                                        <div class="career-course-heading">
+                                                            <div>
+                                                                <strong>{{ course.title }}</strong>
+                                                                <span class="muted">{{ course.provider }}</span>
+                                                            </div>
+                                                            <span class="pill progress-green">Completed</span>
+                                                        </div>
+                                                        {% if course.certificate_id %}<p class="muted">Certificate ID: {{ course.certificate_id }}</p>{% endif %}
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 {% elif milestone.status != "completed" %}
                                     <p class="muted">Complete the activity above, then add the evidence to your profile or resume.</p>
                                 {% endif %}
                             </div>
-                        </article>
+                        </details>
                     {% endfor %}
                 </div>
             {% endif %}

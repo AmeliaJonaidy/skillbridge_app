@@ -148,7 +148,7 @@ def _completion_percent(profile):
 def _certificate_upload_error(uploaded_file):
     """Return a user-facing validation message for certificate evidence."""
     if not uploaded_file:
-        return "Upload your certificate or completion evidence before marking this milestone complete."
+        return         "Enter your certificate ID before marking this milestone complete."
     extension = Path(uploaded_file.name).suffix.casefold()
     if extension not in CERTIFICATE_FILE_EXTENSIONS:
         return "Certificate evidence must be a PDF, DOC, DOCX, PNG, JPG, or JPEG file."
@@ -337,6 +337,42 @@ def learning(request):
     requested_direction = request.GET.get("direction", "")
     if requested_direction in interests:
         progress = [goal for goal in progress if goal["key"] == requested_direction]
+    completed_courses = {
+        milestone.certification.title: milestone
+        for milestone in milestones
+        if milestone.status == "completed"
+    }
+    legacy_completed_courses = set(data.get("completed_career_courses", []))
+    for goal in progress:
+        goal["completed_courses"] = []
+        for course in goal["recommendations"]:
+            milestone = completed_courses.get(course["title"])
+            course["completed"] = bool(milestone or course["title"] in legacy_completed_courses)
+            course["certificate_id"] = milestone.certificate_id if milestone else ""
+        for milestone in goal["milestones"]:
+            for course in milestone["courses"]:
+                completed = completed_courses.get(course["title"])
+                course["completed"] = bool(completed or course["title"] in legacy_completed_courses)
+                course["certificate_id"] = completed.certificate_id if completed else ""
+        visible_titles = {
+            course["title"]
+            for milestone in goal["milestones"]
+            for course in milestone["courses"]
+        }
+        for completed in milestones:
+            certification = completed.certification
+            if completed.status != "completed" or certification.title in visible_titles:
+                continue
+            if certification.career_area not in ("", goal["key"]):
+                continue
+            goal["completed_courses"].append(
+                {
+                    "title": certification.title,
+                    "provider": certification.provider,
+                    "url": certification.url,
+                    "certificate_id": completed.certificate_id,
+                }
+            )
     target_job = None
     match = None
     gap_recommendations = []
@@ -350,15 +386,18 @@ def learning(request):
         if request.POST.get("action") == "complete_course":
             career_key = request.POST.get("career_key", "")
             course_title = request.POST.get("course_title", "")
+            certificate_id = request.POST.get("certificate_id", "").strip()
             evidence_file = request.FILES.get("evidence_file")
             path = CAREER_PATHS.get(career_key)
             course = next(
                 (item for item in (path or {}).get("courses", []) if item["title"] == course_title),
                 None,
             )
-            upload_error = _certificate_upload_error(evidence_file)
+            upload_error = _certificate_upload_error(evidence_file) if evidence_file else ""
             if not course:
                 messages.error(request, "That course milestone could not be found. Refresh the page and try again.")
+            elif not certificate_id and not evidence_file:
+                messages.error(request, "Enter your certificate ID before marking this course complete.")
             elif upload_error:
                 messages.error(request, upload_error)
             else:
@@ -368,10 +407,14 @@ def learning(request):
                     certification=certification,
                 )
                 milestone.evidence_file = evidence_file
+                milestone.certificate_id = certificate_id
                 milestone.status = "completed"
                 milestone.completed_at = timezone.now()
-                milestone.notes = "Completion evidence uploaded and validated by file type and size."
-                milestone.save(update_fields=["evidence_file", "status", "completed_at", "notes"])
+                milestone.notes = "Certificate ID submitted by candidate."
+                update_fields = ["certificate_id", "status", "completed_at", "notes"]
+                if evidence_file:
+                    update_fields.append("evidence_file")
+                milestone.save(update_fields=update_fields)
 
                 # Keep the legacy profile fields so existing roadmap cards
                 # continue to render as completed after this migration.
@@ -385,6 +428,18 @@ def learning(request):
                         completed_skills.append(skill)
                 data["completed_career_courses"] = completed_courses
                 data["completed_career_skills"] = completed_skills
+                completed_certificates = list(data.get("completed_career_certificates", []))
+                certificate_record = {
+                    "title": course_title,
+                    "provider": course["provider"],
+                    "certificate_id": certificate_id,
+                }
+                completed_certificates = [
+                    item for item in completed_certificates
+                    if item.get("title") != course_title
+                ]
+                completed_certificates.append(certificate_record)
+                data["completed_career_certificates"] = completed_certificates
                 profile.profile_data = data
                 profile.save(update_fields=["profile_data"])
                 messages.success(request, f"{course_title} was validated and marked completed. Your readiness bars have been updated.")

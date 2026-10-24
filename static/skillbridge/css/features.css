@@ -108,36 +108,97 @@
     margin: 5px 0 0;
 }
 .career-milestone {
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr);
-    gap: 12px;
-    padding: 13px;
+    display: block;
+    min-width: 0;
     border: 1px solid var(--line);
     border-radius: 10px;
     background: var(--soft);
+    overflow: hidden;
 }
-.career-milestone-number {
+.career-milestone-summary {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(110px, 28%) 42px 12px !important;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 12px;
+    padding: 13px;
+    cursor: pointer;
+    list-style: none;
+}
+.career-milestone-summary > .career-milestone-heading {
+    display: grid;
+    grid-column: 1;
+    grid-row: 1;
+    flex: none;
+    width: auto;
+    min-width: 0;
+}
+.career-milestone-summary::marker {
+    content: "";
+}
+.career-milestone-summary::-webkit-details-marker {
+    display: none;
+}
+.career-milestone-progress {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-    background: var(--accent-soft, #eaf0ff);
-    color: var(--accent);
-    font-size: 12px;
+    background:
+        radial-gradient(circle, var(--soft) 0 63%, transparent 64%),
+        conic-gradient(var(--success) var(--completion), var(--ring-track) 0);
+    color: var(--ink);
+    font-size: 10px;
     font-weight: 700;
+    position: relative;
+    isolation: isolate;
+}
+.career-milestone-heading {
+    display: grid;
+    gap: 3px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.career-milestone-summary > .pill {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    margin-left: 8px;
+}
+.career-milestone-progress-track {
+    display: block;
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--ring-track);
+}
+.career-milestone-progress-track > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--success);
 }
 .career-milestone-content {
     display: grid;
     gap: 7px;
     min-width: 0;
+    padding: 0 13px 13px 63px;
 }
-.career-milestone-heading {
-    align-items: flex-start;
+.career-milestone-toggle {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--muted);
+    border-bottom: 2px solid var(--muted);
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform .15s ease;
 }
-.career-milestone-heading > div {
-    display: grid;
-    gap: 3px;
+details[open] .career-milestone-toggle {
+    transform: rotate(225deg) translate(-2px, -2px);
 }
 .career-milestone-heading .muted {
     font-size: 11px;
@@ -628,6 +689,42 @@
     flex-wrap:wrap;
     gap:8px;
 }
+.certificate-id-field {
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 11px;
+}
+.career-course form {
+    align-items: end;
+}
+.certificate-id-field input {
+    min-width: 220px;
+    height: 42px;
+    box-sizing: border-box;
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--ink);
+    background: var(--paper);
+    font-size: 12px;
+}
+.career-course form .button {
+    height: 42px;
+    box-sizing: border-box;
+    padding: 7px 14px;
+}
+.career-completed-courses {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+}
+.career-completed-courses > .eyebrow {
+    margin: 5px 0 0;
+}
+.career-course-completed .career-course-heading {
+    align-items: center;
+}
 .file-upload-label {
     display:grid;
     gap:4px;
@@ -834,6 +931,16 @@
     }
 }
 @media(max-width:650px) {
+    .career-milestone-summary {
+        grid-template-columns: minmax(0, 1fr) 42px 12px !important;
+    }
+    .career-milestone-progress-track {
+        display: none;
+    }
+    .career-milestone-toggle {
+        grid-column: 3;
+        grid-row: 1;
+    }
     .interview-top {
         flex-direction:column;
         gap:17px

@@ -62,6 +62,7 @@ class CandidateMilestone(models.Model):
         related_name="candidate_milestones",
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="planned")
+    certificate_id = models.CharField(max_length=150, blank=True)
     notes = models.TextField(blank=True)
     evidence_file = models.FileField(upload_to="certificate_evidence/", blank=True, null=True)
     completed_at = models.DateTimeField(blank=True, null=True)
