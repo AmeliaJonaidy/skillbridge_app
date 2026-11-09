@@ -71,9 +71,9 @@
                             <img class="sandy-introduction-avatar" src="{% static 'skillbridge/images/sandy-onboarding-bot.png' %}" alt="Sandy, the SkillBridge signup guide">
                             <span class="sandy-animated-mouth" aria-hidden="true"></span>
                         </span>
-                        <div class="onboard-bubble bot sandy-welcome-bubble" aria-label="Hello, I’m Sandy, your friendly signup guide. Welcome to SkillBridge! I’ll help you build your profile one step at a time. Let’s get started.">
-                            <span data-sandy-text data-message="Hello, I’m Sandy, your friendly signup guide. Welcome to SkillBridge! I’ll help you build your profile one step at a time. Let’s get started." aria-hidden="true"></span><span class="sandy-cursor" aria-hidden="true"></span>
-                            <noscript>Hello, I’m Sandy, your friendly signup guide. Welcome to SkillBridge! I’ll help you build your profile one step at a time. Let’s get started.</noscript>
+                        <div class="onboard-bubble bot sandy-welcome-bubble" aria-label="Hi, I’m Sandy, your SkillBridge guide. Welcome! I’ll help you build your profile step by step. Let’s get started.">
+                            <span data-sandy-text data-message="Hi, I’m Sandy, your SkillBridge guide. Welcome! I’ll help you build your profile step by step. Let’s get started." aria-hidden="true"></span><span class="sandy-cursor" aria-hidden="true"></span>
+                            <noscript>Hi, I’m Sandy, your SkillBridge guide. Welcome! I’ll help you build your profile step by step. Let’s get started.</noscript>
                         </div>
                     </div>
                 {% endif %}
@@ -184,7 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
         let index = 0;
         const timer = window.setInterval(() => {
             questionText.textContent += message[index++];
-            scrollToLatest();
             if (index >= message.length) {
                 window.clearInterval(timer);
                 window.setTimeout(finishQuestion, 250);
@@ -208,7 +207,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const typingTimer = window.setInterval(() => {
         textTarget.textContent += message[characterIndex];
         characterIndex += 1;
-        scrollToLatest();
         if (characterIndex >= message.length) {
             window.clearInterval(typingTimer);
             intro.classList.remove("is-speaking");

@@ -212,6 +212,42 @@ textarea:focus {
 .card {
     border-radius: 14px;
 }
+.resume-paper {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+.resume-draft {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+    font: 12px/1.65 Arial, Helvetica, sans-serif;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
+    overflow: hidden;
+}
+.resume-document-contact,
+.resume-paper p,
+.resume-paper h2,
+.resume-paper h3,
+.resume-paper h4 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.resume-fit-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+.resume-fit-table {
+    min-width: 700px;
+}
 
 .account-card.create-listing-card {
     width: 100%;

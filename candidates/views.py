@@ -252,7 +252,7 @@ def profile(request):
                     profile.profile_data = data
                     profile.save(update_fields=["profile_data"])
                     sync_candidate_profile(request.user, data)
-                    messages.success(request, f"Auto-filled {len(updates)} profile field(s). Review them before saving.")
+                    notify(request.user, "Profile auto-filled", f"Sandy auto-filled {len(updates)} profile field(s) from your resume.", "profile")
                 else:
                     messages.error(request, "We could not extract readable text from this resume. PDF support requires the pypdf package.")
             return redirect("candidate_profile")
@@ -280,7 +280,7 @@ def profile(request):
         profile.profile_data = data
         profile.save(update_fields=changed_fields)
         sync_candidate_profile(request.user, data)
-        messages.success(request, "Your profile has been updated.")
+        notify(request.user, "Profile updated", "Your SkillBridge profile has been updated successfully.", "profile")
         profile.refresh_from_db()
         form = CandidateProfileForm(initial=_profile_initial(request, profile))
     career_choice_map = {
@@ -346,29 +346,31 @@ def tailor_resume_for_interest(request, interest):
     source, _ = _candidate_source(request.user)
     tracked_skills = path["skills"] if path else []
     matched = [skill for skill in tracked_skills if _skill_matches(source, skill)]
-    missing = [skill for skill in tracked_skills if skill not in matched]
-    skill_questions = [{"name": skill} for skill in missing]
+    skill_questions = [
+        {"name": skill, "already_matched": skill in matched}
+        for skill in tracked_skills
+    ]
     if request.method == "POST":
         skill_evidence = {}
         errors = []
-        for skill in missing:
-            description = request.POST.get(f"description_{skill}", "").strip()
-            duration = request.POST.get(f"duration_{skill}", "").strip()
-            if not description:
-                errors.append(f"Add how you used {skill}.")
-            if not duration:
-                errors.append(f"Add how long you have used {skill}.")
-            skill_evidence[skill] = {"description": description, "duration": duration}
+        if not request.POST.get("skip_missing"):
+            for skill in tracked_skills:
+                description = request.POST.get(f"description_{skill}", "").strip()
+                duration = request.POST.get(f"duration_{skill}", "").strip()
+                if description and duration:
+                    skill_evidence[skill] = {"description": description, "duration": duration}
         if errors:
-            return render(request, "candidates/tailor_interest.html", _context(
-                request, interest=interest, path=path, skill_questions=skill_questions, errors=errors,
-            ))
+            return render(
+                request,
+                "candidates/tailor_interest.html",
+                _context(request, interest=interest, path=path, skill_questions=skill_questions, errors=errors),
+            )
         draft = TailoredResume.objects.create(
             candidate=request.user,
             title=f"Resume for {path['label'] if path else interest.replace('-', ' ').title()}",
             content=build_interest_tailored_resume(request.user, interest, skill_evidence),
         )
-        messages.success(request, "Your interest-focused resume draft is ready.")
+        notify(request.user, "Tailored resume ready", f"Your {path['label']} resume draft is ready to review and edit.", "resume")
         return redirect("resume_detail", resume_id=draft.id)
     return render(request, "candidates/tailor_interest.html", _context(
         request, interest=interest, path=path, skill_questions=skill_questions, errors=[],
@@ -405,9 +407,9 @@ def calendar(request):
                 f"{request.user.username} requested a new time for {interview.application.job.title}. Reason: {interview.reschedule_reason or 'No reason provided.'}",
                 "interview",
             )
-            messages.success(request, "Your reschedule request was sent to the recruiter.")
+            notify(request.user, "Interview request sent", f"Your reschedule request for {interview.application.job.title} was sent to the recruiter.", "interview")
         else:
-            messages.success(request, "Interview notes saved.")
+            notify(request.user, "Interview notes saved", f"Your notes for {interview.application.job.title} were saved.", "interview")
         interview.save(update_fields=[
             "candidate_notes",
             "proposed_start",
@@ -514,7 +516,7 @@ def learning(request):
             milestone.delete()
             if request.headers.get("x-requested-with") == "XMLHttpRequest":
                 return JsonResponse({"ok": True, "message": "The verification submission was withdrawn."})
-            messages.success(request, "The verification submission was withdrawn. You can edit and submit it again.")
+            notify(request.user, "Certificate submission withdrawn", "The verification submission was withdrawn. You can edit and submit it again.", "certificate")
             return redirect(request.get_full_path())
 
         if request.POST.get("action") == "complete_course":
@@ -576,6 +578,7 @@ def learning(request):
                     if result.status == "completed"
                     else f"{course_title} was submitted and is pending administrator verification."
                 )
+                notify(request.user, course_title, response_message, "certificate")
                 if ajax_submission:
                     return JsonResponse({
                         "ok": True,
@@ -585,10 +588,6 @@ def learning(request):
                         "certificate_id": milestone.certificate_id,
                         "course_title": course_title,
                     })
-                if result.status == "completed":
-                    messages.success(request, response_message)
-                else:
-                    messages.success(request, response_message)
                 return redirect(f"{reverse('candidate_learning')}?direction={career_key}#verification-status")
 
         certification = get_object_or_404(Certification, pk=request.POST.get("certification_id"))
@@ -603,7 +602,7 @@ def learning(request):
             if evidence_file:
                 milestone.evidence_file = evidence_file
             next_status = "pending_verification"
-            messages.success(request, "Certificate evidence was submitted for administrator verification.")
+            notify(request.user, "Certificate submitted", "Certificate evidence was submitted for administrator verification.", "certificate")
         milestone.status = next_status
         milestone.completed_at = None
         update_fields = ["status", "completed_at"]

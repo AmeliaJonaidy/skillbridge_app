@@ -1,8 +1,9 @@
 """Explainable career-pathway progress for the candidate dashboard.
 
 This module keeps the first version transparent. It compares skills in a
-selected pathway with evidence from the profile, resume, and milestones. The
-percentage is a readiness indicator, not a probability of being hired.
+selected pathway with evidence from the candidate's uploaded or selected main
+resume. The percentage is a readiness indicator, not a probability of being
+hired.
 """
 
 from urllib.parse import quote_plus
@@ -397,8 +398,10 @@ def _milestones(path, missing, recommendations):
 
 
 def career_progress(candidate, interests):
-    """Return one explainable progress bar and roadmap per selected path."""
-    source, data = _candidate_source(candidate)
+    """Return roadmap progress using the same resume evidence as Resume Fit."""
+    source = _uploaded_resume_source(candidate)
+    profile = UserProfile.objects.filter(user=candidate).first()
+    data = (getattr(profile, "profile_data", {}) or {}) if profile else {}
     stage_labels = dict(CAREER_STAGE_CHOICES)
     results = []
     for interest in interests or []:

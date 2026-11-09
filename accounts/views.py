@@ -41,6 +41,7 @@ from .payment_services import (
     verify_stripe_signature,
 )
 from .referral_services import award_referral
+from .notification_helpers import notify
 
 
 CANDIDATE_STEPS = [
@@ -223,7 +224,7 @@ def signup_view(request):
                 referral_code=referrer_profile.referral_code,
             )
             award_referral(referral)
-            messages.success(request, "Referral accepted. You received 7 days of SkillBridge Pro.")
+            notify(user, "Referral reward applied", "Your referral was accepted and 7 days of SkillBridge Pro were added.", "account")
         login(request, user)
         request.session["onboarding_step"] = 0
         request.session["onboarding_answers"] = {}
@@ -307,14 +308,14 @@ def onboarding(request):
                     request.session["onboarding_answers"] = answers
                     request.session["onboarding_step"] = step_number
                     request.session["sandy_intro_seen"] = True
-                    messages.success(request, "Resume submitted. Sandy auto-filled the guided fields below. Edit anything you need, then save and continue.")
+                    notify(request.user, "Resume submitted", "Sandy auto-filled your guided profile fields. Review and edit them before continuing.", "profile")
                     return redirect("onboarding")
                 resume_form.add_error("resume", rejection_reason)
         else:
             _save_resume_form(request, profile, resume_form, answers)
             request.session["onboarding_answers"] = answers
             request.session["onboarding_step"] = step_number + 1
-            messages.success(request, "Your resume was saved and the preview has been updated.")
+            notify(request.user, "Resume profile saved", "Your resume profile was saved and the preview has been updated.", "profile")
             return redirect("onboarding")
     elif request.method == "POST" and step["id"] != "resume" and form.is_valid():
         value = form.cleaned_data.get(step["id"])
@@ -525,7 +526,7 @@ def cancel_pro(request):
     profile.plan = "free"
     profile.plan_expires_at = None
     profile.save(update_fields=["plan", "plan_expires_at"])
-    messages.success(request, "Pro has been cancelled. Your account is now on SkillBridge Free.")
+    notify(request.user, "Pro plan cancelled", "Your Pro plan was cancelled. Your account is now on SkillBridge Free.", "payment")
     return redirect("plans")
 
 
@@ -620,7 +621,7 @@ def pro_payment_success(request):
         return redirect("plans")
     if session.get("payment_status") == "paid" and session.get("status") == "complete":
         _mark_payment_paid(payment, session)
-        messages.success(request, "Payment successful. SkillBridge Pro is now active.")
+        notify(request.user, "Payment successful", "SkillBridge Pro is now active.", "payment")
     else:
         messages.info(request, "Checkout returned, but payment has not been confirmed yet.")
     return redirect("plans")

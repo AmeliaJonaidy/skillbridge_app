@@ -211,25 +211,17 @@ def build_interest_tailored_resume(candidate, interest, skill_evidence=None):
         return ""
     profile = UserProfile.objects.filter(user=candidate).first()
     data = (profile.profile_data if profile else {}) or {}
-    source, _ = _candidate_source(candidate)
-    matched = [skill for skill in path["skills"] if _skill_matches(source, skill)]
-    skill_evidence = skill_evidence or {}
-    missing = [skill for skill in path["skills"] if skill not in matched and skill not in skill_evidence]
+    skill_evidence = {
+        skill: evidence
+        for skill, evidence in (skill_evidence or {}).items()
+        if evidence.get("description", "").strip() and evidence.get("duration", "").strip()
+    }
+    tracked_skills = path["skills"]
+    included_skills = [skill for skill in tracked_skills if skill in skill_evidence]
     evidenced_skills = [
         f"{skill} — {skill_evidence[skill]['description']} ({skill_evidence[skill]['duration']})"
-        for skill in matched
-        if skill in skill_evidence
+        for skill in included_skills
     ]
-    evidenced_skills.extend(
-        f"{skill} — already present in your existing evidence."
-        for skill in matched
-        if skill not in skill_evidence
-    )
-    evidenced_skills.extend(
-        f"{skill} — {skill_evidence[skill]['description']} ({skill_evidence[skill]['duration']})"
-        for skill in path["skills"]
-        if skill in skill_evidence and skill not in matched
-    )
     name = data.get("name") or candidate.get_full_name() or candidate.username
     contact = _dedupe([candidate.email, data.get("phone"), data.get("linkedin")])
     sections = [
@@ -239,17 +231,13 @@ def build_interest_tailored_resume(candidate, interest, skill_evidence=None):
         _section(
             "PROFESSIONAL SUMMARY",
             f"Candidate preparing for {path['label']} roles with evidence of "
-            f"{', '.join(matched) or 'foundational experience to develop'}.",
+            f"{', '.join(included_skills) or 'foundational experience to develop'}.",
         ),
         _section("CORE SKILLS", "\n".join(evidenced_skills)),
         _section("EXPERIENCE", data.get("experience")),
         _section("PROJECTS & PORTFOLIO", data.get("portfolio")),
         _section("CERTIFICATIONS", data.get("certifications")),
         _section("AWARDS & ACHIEVEMENTS", data.get("awards")),
-        _section(
-            "SKILLS TO VERIFY BEFORE SUBMITTING",
-            "\n".join(f"- {skill}" for skill in missing) or "None for the tracked signals.",
-        ),
     ]
     return "\n\n".join(section for section in sections if section.strip())
 
