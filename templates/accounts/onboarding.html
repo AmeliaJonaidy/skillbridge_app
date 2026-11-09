@@ -72,7 +72,7 @@
                             <span class="sandy-animated-mouth" aria-hidden="true"></span>
                         </span>
                         <div class="onboard-bubble bot sandy-welcome-bubble" aria-label="Hi, I’m Sandy, your SkillBridge guide. Welcome! I’ll help you build your profile step by step. Let’s get started.">
-                            <span data-sandy-text data-message="Hi, I’m Sandy, your SkillBridge guide. Welcome! I’ll help you build your profile step by step. Let’s get started." aria-hidden="true"></span><span class="sandy-cursor" aria-hidden="true"></span>
+                            <span data-sandy-text data-message="Hi, I’m Sandy, your SkillBridge guide. Welcome! I’ll help you build your profile step by step. Let’s get started." aria-hidden="true">Hi, I’m Sandy, your SkillBridge guide. Welcome! I’ll help you build your profile step by step. Let’s get started.</span>
                             <noscript>Hi, I’m Sandy, your SkillBridge guide. Welcome! I’ll help you build your profile step by step. Let’s get started.</noscript>
                         </div>
                     </div>
@@ -196,24 +196,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    const message = textTarget.dataset.message;
-    if (reduceMotion) {
-        textTarget.textContent = message;
-        intro.classList.remove("is-speaking");
-        speakQuestion();
-        return;
-    }
-    let characterIndex = 0;
-    const typingTimer = window.setInterval(() => {
-        textTarget.textContent += message[characterIndex];
-        characterIndex += 1;
-        if (characterIndex >= message.length) {
-            window.clearInterval(typingTimer);
-            intro.classList.remove("is-speaking");
-            intro.querySelector(".sandy-cursor")?.remove();
-            window.setTimeout(speakQuestion, 300);
-        }
-    }, 22);
+    intro.classList.remove("is-speaking");
+    window.setTimeout(speakQuestion, reduceMotion ? 0 : 150);
 });
 </script>
 {% if step.id == "resume" %}
