@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 
@@ -12,6 +13,7 @@ from accounts.notification_helpers import notify
 from accounts.calendar import build_month_calendar
 from applications.forms import ApplicationStatusForm, InterviewForm
 from applications.models import Interview, JobApplication
+from accounts.models import Referral
 from jobs.forms import JobForm
 from jobs.models import Job
 
@@ -327,5 +329,7 @@ def dashboard(request):
             recent_applications=applications.select_related("candidate", "job")[:5],
             upcoming_interviews=interviews.filter(scheduled_start__gte=now).select_related("application__job")[:5],
             pending_reschedules=interviews.filter(reschedule_status="pending").select_related("application__candidate", "application__job"),
+            referral_url=request.build_absolute_uri(f"{reverse('signup')}?ref={request.user.profile.referral_code}"),
+            referrals=Referral.objects.filter(referrer=request.user)[:10],
         ),
     )
