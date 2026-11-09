@@ -19,6 +19,7 @@ class TailoredResume(models.Model):
     )
     title = models.CharField(max_length=200, default="My tailored resume")
     content = models.TextField(blank=True)
+    is_main = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

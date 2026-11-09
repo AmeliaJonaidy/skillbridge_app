@@ -7,7 +7,7 @@ percentage is a readiness indicator, not a probability of being hired.
 
 from urllib.parse import quote_plus
 
-from accounts.choices import CAREER_STAGE_CHOICES
+from accounts.choices import CAREER_INTEREST_CHOICES, CAREER_STAGE_CHOICES
 from accounts.models import UserProfile
 
 from .models import CandidateMilestone
@@ -45,7 +45,7 @@ CAREER_PATHS = {
             _stage("Applied ML engineering", ["TensorFlow"], "Turn a model into a reproducible experiment or small prediction service.", "README, model code, evaluation results, and a demo or API endpoint."),
         ],
         "courses": [
-            _course("Google Advanced Data Analytics Professional Certificate", "Coursera", "https://www.coursera.org/professional-certificates/google-advanced-data-analytics", ["Python", "statistics", "machine learning", "analytics"]),
+            _course("Google Advanced Data Analytics Professional Certificate", "Coursera", "https://www.coursera.org/professional-certificates/google-advanced-data-analytics", ["Python", "SQL", "statistics", "machine learning", "analytics"]),
             _course("Machine Learning Engineer Learning Path", "Google Cloud Skills Boost", "https://www.cloudskillsboost.google/paths/17", ["machine learning", "TensorFlow", "Python"]),
             _course("TensorFlow learning resources", "Google for Developers", "https://www.tensorflow.org/resources/learn-ml", ["TensorFlow", "machine learning"]),
         ],
@@ -281,6 +281,17 @@ SKILL_ALIASES = {
     "model evaluation": ("model validation", "evaluation metrics"),
 }
 
+CAREER_FIT_PROFILES = {
+    "sales": {
+        "label": "Sales and business development",
+        "skills": ["sales", "business development", "communication", "negotiation", "client relationship"],
+    },
+    "product-management": {
+        "label": "Product management",
+        "skills": ["product management", "requirements", "stakeholder management", "user research", "analytics"],
+    },
+}
+
 
 def _normalise(value):
     return " ".join(str(value or "").casefold().replace("_", " ").split())
@@ -325,6 +336,23 @@ def _candidate_source(candidate):
     completed = CandidateMilestone.objects.filter(candidate=candidate, status="completed").select_related("certification")
     values.extend(milestone.certification.skills for milestone in completed)
     return " ".join(values), data
+
+
+def _uploaded_resume_source(candidate):
+    """Return the selected main resume, or uploaded resume text."""
+    from resumes.models import TailoredResume
+
+    main_resume = TailoredResume.objects.filter(candidate=candidate, is_main=True).first()
+    if main_resume:
+        return main_resume.content.split("SKILLS TO VERIFY BEFORE SUBMITTING", 1)[0]
+    profile = UserProfile.objects.filter(user=candidate).first()
+    if not profile or not profile.resume:
+        return ""
+    try:
+        with profile.resume.open("rb") as resume_file:
+            return extract_resume_text(resume_file)
+    except (OSError, ValueError):
+        return ""
 
 
 def _milestones(path, missing, recommendations):
@@ -415,6 +443,35 @@ def career_progress(candidate, interests):
                 "milestones": _milestones(path, missing, recommendations),
                 "current_stage": data.get("career_stage", ""),
                 "current_stage_label": stage_labels.get(data.get("career_stage", ""), "Not set"),
+            }
+        )
+    return results
+
+
+def resume_fit_matrix(candidate, interests):
+    """Compare uploaded-resume evidence with each selected career direction."""
+    source = _uploaded_resume_source(candidate)
+    labels = dict(CAREER_INTEREST_CHOICES)
+    results = []
+    for interest in interests or []:
+        path = CAREER_PATHS.get(interest) or CAREER_FIT_PROFILES.get(interest)
+        if not path:
+            continue
+        required = path["skills"]
+        matched = [skill for skill in required if _skill_matches(source, skill)]
+        missing = [skill for skill in required if skill not in matched]
+        score = round(len(matched) / len(required) * 100) if required else 0
+        results.append(
+            {
+                "key": interest,
+                "label": path.get("label", labels.get(interest, interest.replace("-", " ").title())),
+                "score": score,
+                "matched": matched,
+                "missing": missing,
+                "summary": (
+                    f"Your uploaded resume shows {len(matched)} of {len(required)} "
+                    f"tracked signals for this direction."
+                ),
             }
         )
     return results

@@ -82,6 +82,58 @@ def cancel_stripe_subscription(subscription_id):
     return _stripe_request(f"subscriptions/{subscription_id}", method="DELETE")
 
 
+def extend_stripe_subscription_trial(subscription_id, trial_end):
+    """Move the next Stripe charge to the end of a referral reward period."""
+    return _stripe_request(
+        f"subscriptions/{subscription_id}",
+        data={
+            "trial_end": str(int(trial_end.timestamp())),
+            "proration_behavior": "none",
+            "metadata[last_reward]": "referral_week",
+        },
+        method="POST",
+    )
+
+
+def stripe_payment_for_subscription(subscription_id):
+    """Find the local payment associated with a Stripe subscription."""
+    if not subscription_id:
+        return None
+    from .models import Payment
+
+    return Payment.objects.filter(
+        provider="stripe",
+        metadata__subscription=subscription_id,
+    ).select_related("user").order_by("-created_at").first()
+
+
+def set_stripe_entitlement(payment, *, active, status, stripe_status=""):
+    """Synchronise a Stripe payment and its user's Pro entitlement."""
+    from .models import UserProfile
+
+    metadata = dict(payment.metadata or {})
+    if stripe_status:
+        metadata["subscription_status"] = stripe_status
+    payment.status = status
+    payment.metadata = metadata
+    update_fields = ["status", "metadata"]
+    if active and payment.paid_at is None:
+        from django.utils import timezone
+
+        payment.paid_at = timezone.now()
+        update_fields.append("paid_at")
+    payment.save(update_fields=update_fields)
+
+    profile, _ = UserProfile.objects.get_or_create(
+        user=payment.user,
+        defaults={"role": "candidate"},
+    )
+    profile.plan = "pro" if active else "free"
+    profile.plan_expires_at = None
+    profile.save(update_fields=["plan", "plan_expires_at"])
+    return profile
+
+
 def verify_stripe_signature(payload, signature):
     secret = getattr(settings, "STRIPE_WEBHOOK_SECRET", "")
     if not secret or not signature:

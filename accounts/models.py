@@ -1,7 +1,13 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
+
+
+def generate_referral_code():
+    return uuid.uuid4().hex[:10].upper()
 
 
 class UserProfile(models.Model):
@@ -13,6 +19,8 @@ class UserProfile(models.Model):
     plan_expires_at = models.DateTimeField(blank=True, null=True)
     profile_data = models.JSONField(default=dict, blank=True)
     resume = models.FileField(upload_to='resumes/', blank=True, null=True)
+    profile_photo = models.FileField(upload_to='profile_photos/', blank=True, null=True)
+    referral_code = models.CharField(max_length=10, unique=True, default=generate_referral_code)
 
     @property
     def is_pro(self):
@@ -42,6 +50,8 @@ class Payment(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('paid', 'Paid'),
+        ('past_due', 'Past due'),
+        ('expired', 'Expired'),
         ('failed', 'Failed'),
         ('cancelled', 'Cancelled'),
     ]
@@ -81,3 +91,34 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.recipient.username} · {self.title}"
+
+
+class Referral(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("rewarded", "Rewarded"),
+        ("partial", "Partially rewarded"),
+        ("failed", "Failed"),
+    ]
+    referrer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="referrals_made",
+    )
+    referred_user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="referral_received",
+    )
+    referral_code = models.CharField(max_length=10)
+    reward_days = models.PositiveSmallIntegerField(default=7)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    rewarded_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.referrer} referred {self.referred_user}"

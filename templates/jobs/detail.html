@@ -26,7 +26,7 @@
     <div class="card match-summary">
         <div class="section-heading">
             <div>
-                <p class="eyebrow">YOUR READINESS</p>
+                <p class="eyebrow">Your readiness</p>
                 <h2>{{ match.score }}% fit score</h2>
             </div>
             <div>{% if match.assessment %}<span class="pill">{{ match.assessment }}</span>{% endif %}{% if application %}<span class="pill progress-green">{{ application.get_status_display }}</span>{% endif %}</div>
@@ -45,7 +45,7 @@
     <div class="card match-summary">
         <div class="section-heading">
             <div>
-                <p class="eyebrow">SKILLBRIDGE PRO</p>
+                <p class="eyebrow">SkillBridge Pro</p>
                 <h2>Unlock your readiness score</h2>
             </div>
             <a class="button small" href="{% url 'plans' %}">View Pro →</a>
@@ -94,6 +94,7 @@
                 <small class="muted">This draft uses the job description and relevant evidence in your profile or resume. Edit it so it reflects your own voice before submitting.</small>
                 {{ form.cover_note }}
             </label>
+            <p class="muted">{% if main_resume %}Your selected main resume will be attached to this application.{% else %}A job-specific resume draft will be generated for this application.{% endif %}</p>
             <button class="primary" type="submit">Submit application →</button>
         </form>
     {% endif %}

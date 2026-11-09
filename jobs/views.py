@@ -24,6 +24,7 @@ def detail(request, job_id):
     )
     profile = getattr(request.user, "profile", None)
     profile_data = (profile.profile_data if profile else {}) or {}
+    main_resume = TailoredResume.objects.filter(candidate=request.user, is_main=True).first()
     profile_missing_fields = [
         field
         for field in ("name", "career", "specialisation")
@@ -63,12 +64,26 @@ def detail(request, job_id):
                 application.missing_skills = match.missing_skills
                 application.match_breakdown = match.score_breakdown
                 application.match_assessment = match.assessment
-                application.tailored_resume = build_tailored_resume(request.user, job)
+                main_resume = TailoredResume.objects.filter(
+                    candidate=request.user,
+                    is_main=True,
+                ).first()
+                application.tailored_resume = (
+                    main_resume.content
+                    if main_resume
+                    else build_tailored_resume(request.user, job)
+                )
                 application.save()
                 notify(
                     job.created_by,
                     "New job application",
                     f"{request.user.username} applied for {job.title}.",
+                    "application",
+                )
+                notify(
+                    request.user,
+                    "Application submitted",
+                    f"Your application for {job.title} has been submitted successfully.",
                     "application",
                 )
                 messages.success(request, "Your application has been submitted.")
@@ -86,5 +101,6 @@ def detail(request, job_id):
             "match": match,
             "form": form,
             "profile_missing_fields": profile_missing_fields,
+            "main_resume": main_resume,
         },
     )

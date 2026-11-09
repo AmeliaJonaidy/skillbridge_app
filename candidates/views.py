@@ -1,14 +1,24 @@
 from pathlib import Path
+import re
 
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.http import JsonResponse
 from django.urls import reverse
 
 from accounts.models import UserProfile
 from accounts.notification_helpers import notify
-from accounts.choices import CAREER_INTEREST_CHOICES, PHONE_COUNTRY_CODE_CHOICES
+from accounts.choices import (
+    CAREER_CHOICES,
+    CAREER_INTERESTS_BY_AREA,
+    CAREER_INTEREST_CHOICES,
+    PHONE_COUNTRY_CODE_CHOICES,
+    SPECIALISATION_CHOICES,
+    SPECIALISATIONS_BY_AREA,
+    choices_for_career,
+)
 from accounts.calendar import build_month_calendar
 from accounts.decorators import candidate_required
 from accounts.notification_helpers import notify
@@ -19,10 +29,13 @@ from jobs.models import Job
 from matching.services import get_or_update_match, recommend_certifications_for_gap
 
 from .forms import CandidateProfileForm
-from .career_paths import CAREER_PATHS, career_progress
+from .career_paths import CAREER_PATHS, _candidate_source, _skill_matches, career_progress, resume_fit_matrix
+from .certificate_verification import verify_certificate
 from .models import CandidateMilestone, Certification
 from .resume_parser import extract_resume_text, review_resume
-from .services import autofill_from_resume, sync_candidate_profile
+from .services import add_verified_certificate_to_resume, autofill_from_resume, sync_candidate_profile
+from resumes.models import TailoredResume
+from resumes.services import build_interest_tailored_resume
 
 CERTIFICATE_FILE_EXTENSIONS = {".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"}
 MAX_CERTIFICATE_FILE_SIZE = 10 * 1024 * 1024
@@ -129,7 +142,9 @@ def _profile_initial(request, profile):
         "education": data.get("education", ""),
         "institution": data.get("institution", data.get("school", "")),
         "experience": data.get("experience", ""),
+        "experience_entries": data.get("experience_entries", []),
         "certifications": data.get("certifications", ""),
+        "certification_entries": data.get("certification_entries", []),
         "skills": data.get("skills", ""),
         "portfolio": data.get("portfolio", data.get("portfolio_links", "")),
         "awards": data.get("awards", ""),
@@ -154,6 +169,15 @@ def _certificate_upload_error(uploaded_file):
         return "Certificate evidence must be a PDF, DOC, DOCX, PNG, JPG, or JPEG file."
     if uploaded_file.size > MAX_CERTIFICATE_FILE_SIZE:
         return "Certificate evidence must be 10 MB or smaller."
+    return ""
+
+
+def _certificate_id_error(certificate_id):
+    value = (certificate_id or "").strip()
+    if len(value) < 6:
+        return "Certificate IDs must contain at least 6 characters."
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{4,148}[A-Za-z0-9]", value):
+        return "Enter the certificate ID exactly as issued, using only letters, numbers, dots, slashes, underscores, or hyphens."
     return ""
 
 
@@ -241,6 +265,10 @@ def profile(request):
                     profile.resume = value
                     changed_fields.append("resume")
                     data["resume"] = profile.resume.name
+            elif field == "profile_photo":
+                if value:
+                    profile.profile_photo = value
+                    changed_fields.append("profile_photo")
             elif field == "email":
                 request.user.email = value or ""
                 request.user.save(update_fields=["email"])
@@ -255,7 +283,26 @@ def profile(request):
         messages.success(request, "Your profile has been updated.")
         profile.refresh_from_db()
         form = CandidateProfileForm(initial=_profile_initial(request, profile))
-    return render(request, "candidates/profile.html", {**_context(request), "form": form, "profile": profile, "completion_percent": _completion_percent(profile)})
+    career_choice_map = {
+        career_area: {
+            "label": dict(CAREER_CHOICES).get(career_area, career_area.title()),
+            "interests": choices_for_career(CAREER_INTEREST_CHOICES, CAREER_INTERESTS_BY_AREA, career_area),
+            "specialisations": choices_for_career(SPECIALISATION_CHOICES, SPECIALISATIONS_BY_AREA, career_area),
+        }
+        for career_area in CAREER_INTERESTS_BY_AREA
+    }
+    selected_interests = form["career_interests"].value() or []
+    if isinstance(selected_interests, str):
+        selected_interests = [selected_interests]
+    return render(request, "candidates/profile.html", {
+        **_context(request),
+        "form": form,
+        "profile": profile,
+        "completion_percent": _completion_percent(profile),
+        "career_choice_map": career_choice_map,
+        "selected_interests": selected_interests,
+        "guided_resume": request.GET.get("guided") == "1",
+    })
 
 
 @candidate_required
@@ -263,10 +310,69 @@ def resume(request):
     profile = getattr(request.user, "profile", None)
     data = (profile.profile_data if profile else {}) or {}
     feedback = None
+    fit_matrix = resume_fit_matrix(request.user, _selected_career_interests(data))
+    tailored_drafts = {
+        draft.title: draft
+        for draft in TailoredResume.objects.filter(candidate=request.user)
+    }
+    main_resume = TailoredResume.objects.filter(candidate=request.user, is_main=True).first()
+    for fit in fit_matrix:
+        draft = tailored_drafts.get(f"Resume for {fit['label']}")
+        fit["tailored_resume_id"] = draft.id if draft else ""
     if profile and profile.resume:
         with profile.resume.open("rb") as resume_file:
             feedback = review_resume(extract_resume_text(resume_file))
-    return render(request, "candidates/resume.html", _context(request, profile=profile, profile_data=data, feedback=feedback))
+    return render(request, "candidates/resume.html", _context(
+        request,
+        profile=profile,
+        profile_data=data,
+        feedback=feedback,
+        fit_matrix=fit_matrix,
+        main_resume=main_resume,
+    ))
+
+
+@candidate_required
+def tailor_resume_for_interest(request, interest):
+    profile = _current_profile(request)
+    data = (profile.profile_data if profile else {}) or {}
+    if interest not in _selected_career_interests(data):
+        messages.error(request, "Select this career direction in your profile before tailoring a resume.")
+        return redirect("candidate_resume")
+    path = CAREER_PATHS.get(interest)
+    if not path and interest not in {"sales", "product-management"}:
+        messages.error(request, "This career direction is not available for tailoring yet.")
+        return redirect("candidate_resume")
+    source, _ = _candidate_source(request.user)
+    tracked_skills = path["skills"] if path else []
+    matched = [skill for skill in tracked_skills if _skill_matches(source, skill)]
+    missing = [skill for skill in tracked_skills if skill not in matched]
+    skill_questions = [{"name": skill} for skill in missing]
+    if request.method == "POST":
+        skill_evidence = {}
+        errors = []
+        for skill in missing:
+            description = request.POST.get(f"description_{skill}", "").strip()
+            duration = request.POST.get(f"duration_{skill}", "").strip()
+            if not description:
+                errors.append(f"Add how you used {skill}.")
+            if not duration:
+                errors.append(f"Add how long you have used {skill}.")
+            skill_evidence[skill] = {"description": description, "duration": duration}
+        if errors:
+            return render(request, "candidates/tailor_interest.html", _context(
+                request, interest=interest, path=path, skill_questions=skill_questions, errors=errors,
+            ))
+        draft = TailoredResume.objects.create(
+            candidate=request.user,
+            title=f"Resume for {path['label'] if path else interest.replace('-', ' ').title()}",
+            content=build_interest_tailored_resume(request.user, interest, skill_evidence),
+        )
+        messages.success(request, "Your interest-focused resume draft is ready.")
+        return redirect("resume_detail", resume_id=draft.id)
+    return render(request, "candidates/tailor_interest.html", _context(
+        request, interest=interest, path=path, skill_questions=skill_questions, errors=[],
+    ))
 
 
 @candidate_required
@@ -337,6 +443,7 @@ def learning(request):
     requested_direction = request.GET.get("direction", "")
     if requested_direction in interests:
         progress = [goal for goal in progress if goal["key"] == requested_direction]
+    course_submissions = {milestone.certification.title: milestone for milestone in milestones}
     completed_courses = {
         milestone.certification.title: milestone
         for milestone in milestones
@@ -348,12 +455,24 @@ def learning(request):
         for course in goal["recommendations"]:
             milestone = completed_courses.get(course["title"])
             course["completed"] = bool(milestone or course["title"] in legacy_completed_courses)
-            course["certificate_id"] = milestone.certificate_id if milestone else ""
+            submission = course_submissions.get(course["title"])
+            course["certificate_id"] = submission.certificate_id if submission else ""
+            course["pending_verification"] = bool(submission and submission.status == "pending_verification")
+            course["submission"] = submission
         for milestone in goal["milestones"]:
             for course in milestone["courses"]:
                 completed = completed_courses.get(course["title"])
                 course["completed"] = bool(completed or course["title"] in legacy_completed_courses)
-                course["certificate_id"] = completed.certificate_id if completed else ""
+                submission = course_submissions.get(course["title"])
+                course["certificate_id"] = submission.certificate_id if submission else ""
+                course["pending_verification"] = bool(submission and submission.status == "pending_verification")
+                course["submission"] = submission
+        goal["pending_count"] = len({
+            course["title"]
+            for milestone in goal["milestones"]
+            for course in milestone["courses"]
+            if course.get("pending_verification")
+        })
         visible_titles = {
             course["title"]
             for milestone in goal["milestones"]
@@ -383,10 +502,34 @@ def learning(request):
             match = get_or_update_match(request.user, target_job)
             gap_recommendations = recommend_certifications_for_gap(certifications, match.missing_skills)
     if request.method == "POST":
+        if request.POST.get("action") == "unsubmit_course":
+            milestone = get_object_or_404(
+                CandidateMilestone,
+                candidate=request.user,
+                certification__title=request.POST.get("course_title", ""),
+                status="pending_verification",
+            )
+            if milestone.evidence_file:
+                milestone.evidence_file.delete(save=False)
+            milestone.delete()
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"ok": True, "message": "The verification submission was withdrawn."})
+            messages.success(request, "The verification submission was withdrawn. You can edit and submit it again.")
+            return redirect(request.get_full_path())
+
         if request.POST.get("action") == "complete_course":
+            ajax_submission = request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+            def submission_error(message):
+                if ajax_submission:
+                    return JsonResponse({"ok": False, "message": message}, status=400)
+                messages.error(request, message)
+                return redirect(request.get_full_path())
+
             career_key = request.POST.get("career_key", "")
             course_title = request.POST.get("course_title", "")
             certificate_id = request.POST.get("certificate_id", "").strip()
+            verification_url = request.POST.get("verification_url", "").strip()
             evidence_file = request.FILES.get("evidence_file")
             path = CAREER_PATHS.get(career_key)
             course = next(
@@ -394,56 +537,59 @@ def learning(request):
                 None,
             )
             upload_error = _certificate_upload_error(evidence_file) if evidence_file else ""
+            certificate_id_error = _certificate_id_error(certificate_id)
             if not course:
-                messages.error(request, "That course milestone could not be found. Refresh the page and try again.")
-            elif not certificate_id and not evidence_file:
-                messages.error(request, "Enter your certificate ID before marking this course complete.")
-            elif upload_error:
-                messages.error(request, upload_error)
+                return submission_error("That course milestone could not be found. Refresh the page and try again.")
+            elif certificate_id_error:
+                return submission_error(certificate_id_error)
             else:
                 certification = _catalogue_certification(course, career_key)
+                result = verify_certificate(certification, verification_url)
+                if result.status == "rejected":
+                    return submission_error(result.message)
+                if result.status != "completed" and not evidence_file:
+                    return submission_error("Automatic verification was unavailable. Upload certificate evidence for administrator review.")
+                if upload_error:
+                    return submission_error(upload_error)
                 milestone, _ = CandidateMilestone.objects.get_or_create(
                     candidate=request.user,
                     certification=certification,
                 )
                 milestone.evidence_file = evidence_file
                 milestone.certificate_id = certificate_id
-                milestone.status = "completed"
-                milestone.completed_at = timezone.now()
-                milestone.notes = "Certificate ID submitted by candidate."
-                update_fields = ["certificate_id", "status", "completed_at", "notes"]
+                milestone.verification_url = verification_url
+                milestone.verification_method = result.method
+                milestone.verification_details = result.message
+                milestone.status = result.status
+                milestone.verified_at = timezone.now() if result.status == "completed" else None
+                milestone.completed_at = milestone.verified_at
+                milestone.notes = result.message
+                update_fields = ["certificate_id", "verification_url", "verification_method", "verification_details", "verified_at", "status", "completed_at", "notes"]
                 if evidence_file:
                     update_fields.append("evidence_file")
                 milestone.save(update_fields=update_fields)
+                if result.status == "completed":
+                    add_verified_certificate_to_resume(request.user, milestone)
 
-                # Keep the legacy profile fields so existing roadmap cards
-                # continue to render as completed after this migration.
-                data = dict(profile.profile_data or {})
-                completed_courses = list(data.get("completed_career_courses", []))
-                if course_title not in completed_courses:
-                    completed_courses.append(course_title)
-                completed_skills = list(data.get("completed_career_skills", []))
-                for skill in course.get("covers", []):
-                    if skill not in completed_skills:
-                        completed_skills.append(skill)
-                data["completed_career_courses"] = completed_courses
-                data["completed_career_skills"] = completed_skills
-                completed_certificates = list(data.get("completed_career_certificates", []))
-                certificate_record = {
-                    "title": course_title,
-                    "provider": course["provider"],
-                    "certificate_id": certificate_id,
-                }
-                completed_certificates = [
-                    item for item in completed_certificates
-                    if item.get("title") != course_title
-                ]
-                completed_certificates.append(certificate_record)
-                data["completed_career_certificates"] = completed_certificates
-                profile.profile_data = data
-                profile.save(update_fields=["profile_data"])
-                messages.success(request, f"{course_title} was validated and marked completed. Your readiness bars have been updated.")
-            return redirect(request.get_full_path())
+                response_message = (
+                    f"{course_title} was verified automatically with {certification.provider}."
+                    if result.status == "completed"
+                    else f"{course_title} was submitted and is pending administrator verification."
+                )
+                if ajax_submission:
+                    return JsonResponse({
+                        "ok": True,
+                        "status": result.status,
+                        "status_label": milestone.get_status_display(),
+                        "message": response_message,
+                        "certificate_id": milestone.certificate_id,
+                        "course_title": course_title,
+                    })
+                if result.status == "completed":
+                    messages.success(request, response_message)
+                else:
+                    messages.success(request, response_message)
+                return redirect(f"{reverse('candidate_learning')}?direction={career_key}#verification-status")
 
         certification = get_object_or_404(Certification, pk=request.POST.get("certification_id"))
         milestone, _ = CandidateMilestone.objects.get_or_create(candidate=request.user, certification=certification)
@@ -456,8 +602,10 @@ def learning(request):
                 return redirect(request.get_full_path())
             if evidence_file:
                 milestone.evidence_file = evidence_file
+            next_status = "pending_verification"
+            messages.success(request, "Certificate evidence was submitted for administrator verification.")
         milestone.status = next_status
-        milestone.completed_at = timezone.now() if next_status == "completed" else None
+        milestone.completed_at = None
         update_fields = ["status", "completed_at"]
         if evidence_file:
             update_fields.append("evidence_file")
@@ -482,6 +630,25 @@ def learning(request):
             selected_directions=_career_interest_labels(interests),
         ),
     )
+
+
+@candidate_required
+def verification_status(request):
+    """Small polling endpoint used by the learning page after submission."""
+    milestones = CandidateMilestone.objects.filter(candidate=request.user).select_related("certification")
+    return JsonResponse({
+        "certificates": [
+            {
+                "certification_id": milestone.certification_id,
+                "title": milestone.certification.title,
+                "status": milestone.status,
+                "status_label": milestone.get_status_display(),
+                "certificate_id": milestone.certificate_id,
+                "details": milestone.verification_details,
+            }
+            for milestone in milestones
+        ]
+    })
 
 
 @candidate_required

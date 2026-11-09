@@ -23,6 +23,26 @@ SPECIALISATION_CHOICES = [
     ("business-analysis", "Business analysis"),
     ("finance-investment", "Finance / investment"),
     ("ux-ui", "UX / UI design"),
+    ("human-resources", "Human resources"),
+    ("marketing", "Marketing"),
+    ("sales", "Sales and business development"),
+    ("operations", "Operations and supply chain"),
+    ("entrepreneurship", "Entrepreneurship"),
+    ("real-estate", "Real estate"),
+    ("banking", "Banking"),
+    ("risk-compliance", "Risk and compliance"),
+    ("audit-accounting", "Audit and accounting"),
+    ("graphic-design", "Graphic design"),
+    ("product-design", "Product design"),
+    ("animation", "Animation and motion design"),
+    ("medicine", "Medicine"),
+    ("nursing", "Nursing"),
+    ("biomedical-science", "Biomedical science"),
+    ("clinical-research", "Clinical research"),
+    ("public-health", "Public health"),
+    ("education", "Education"),
+    ("law", "Law"),
+    ("research", "Research"),
     ("other", "Other"),
 ]
 
@@ -46,7 +66,49 @@ CAREER_INTEREST_CHOICES = [
     ("business-analysis", "Business analysis"),
     ("ux-ui", "UX / UI design"),
     ("cloud-devops", "Cloud / DevOps"),
+    ("cybersecurity", "Cybersecurity"),
+    ("product-management", "Product management"),
+    ("human-resources", "Human resources"),
+    ("sales", "Sales and business development"),
+    ("operations", "Operations and supply chain"),
+    ("entrepreneurship", "Entrepreneurship"),
+    ("real-estate", "Real estate"),
+    ("banking", "Banking"),
+    ("risk-compliance", "Risk and compliance"),
+    ("graphic-design", "Graphic design"),
+    ("product-design", "Product design"),
+    ("animation", "Animation and motion design"),
+    ("medicine", "Medicine"),
+    ("nursing", "Nursing"),
+    ("public-health", "Public health"),
+    ("education", "Education"),
+    ("law", "Law"),
+    ("social-impact", "Social impact / nonprofit"),
 ]
+
+CAREER_INTERESTS_BY_AREA = {
+    "technology": ["software-engineering", "ai-engineering", "machine-learning", "data-science", "computer-science", "cybersecurity", "cloud-devops", "fintech", "product-management"],
+    "business": ["marketing", "human-resources", "sales", "operations", "entrepreneurship", "business-analysis", "real-estate", "product-management"],
+    "finance": ["finance", "investment", "banking", "audit-accounting", "risk-compliance", "fintech", "real-estate"],
+    "design": ["ux-ui", "graphic-design", "product-design", "animation", "marketing"],
+    "healthcare": ["medicine", "nursing", "biomedical-science", "microbiology", "bioinformatics", "clinical-research", "public-health", "medicine-technology"],
+    "other": ["scientific-research", "education", "law", "social-impact"],
+}
+
+SPECIALISATIONS_BY_AREA = {
+    "technology": ["software-engineering", "backend", "frontend", "ai-ml", "data-analytics", "cybersecurity", "cloud-devops", "fintech", "product-management", "other"],
+    "business": ["marketing", "human-resources", "sales", "operations", "entrepreneurship", "business-analysis", "real-estate", "product-management", "other"],
+    "finance": ["finance-investment", "banking", "audit-accounting", "risk-compliance", "fintech", "crypto", "real-estate", "other"],
+    "design": ["ux-ui", "graphic-design", "product-design", "animation", "marketing", "other"],
+    "healthcare": ["medicine", "nursing", "biomedical-science", "clinical-research", "public-health", "data-analytics", "other"],
+    "other": ["education", "law", "research", "other"],
+}
+
+
+def choices_for_career(choices, mapping, career_area):
+    """Return choices relevant to a broad career area, preserving display order."""
+    allowed = set(mapping.get(career_area, ()))
+    return [choice for choice in choices if choice[0] in allowed] if allowed else list(choices)
 
 CAREER_STAGE_CHOICES = [
     ("exploring", "Exploring this direction"),

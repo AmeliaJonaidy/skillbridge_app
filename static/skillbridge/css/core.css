@@ -494,8 +494,40 @@ main {
 }
 .content-columns {
     display:grid;
-    grid-template-columns:minmax(0,1fr) 280px;
+    grid-template-columns:minmax(0,1fr);
     gap:24px
+}
+.resume-top-grid {
+    display:grid;
+    grid-column:1 / -1;
+    grid-template-columns:minmax(0,7fr) minmax(0,2.5fr);
+    gap:24px;
+    align-items:stretch;
+    width:100%;
+    min-width:0;
+    grid-auto-rows:1fr
+}
+.resume-main-column,.resume-sidebar {
+    display:flex;
+    flex-direction:column;
+    align-self:stretch;
+    min-width:0;
+    width:100%
+}
+.resume-main-column > .resume-paper,
+.resume-sidebar > .card {
+    width:100%;
+    flex:1 1 auto;
+    height:auto;
+    min-height:0;
+    min-width:0
+}
+.resume-sidebar > .card {
+    min-width:0
+}
+.resume-fit-card {
+    grid-column:1 / -1;
+    width:100%
 }
 .section-heading {
     margin:0 0 17px;
@@ -920,7 +952,7 @@ a {
         padding:42px 50px
     }
     .content-columns {
-        grid-template-columns:minmax(0,1fr) 310px
+        grid-template-columns:minmax(0,1fr)
     }
     .job-card {
         padding:25px
@@ -944,7 +976,7 @@ a {
         padding:0 25px
     }
     .content-columns {
-        grid-template-columns:minmax(0,1fr) 240px
+        grid-template-columns:minmax(0,1fr)
     }
     .hero-art {
         margin-right:0;
@@ -971,6 +1003,9 @@ a {
 }
 @media(max-width:900px) {
     .content-columns {
+        grid-template-columns:1fr
+    }
+    .resume-top-grid {
         grid-template-columns:1fr
     }
     .aside {

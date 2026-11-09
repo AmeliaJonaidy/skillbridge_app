@@ -12,13 +12,71 @@ KNOWN_SKILLS = [
 ]
 
 RESUME_SECTIONS = {
-    "experience": ("experience", "work experience", "employment"),
-    "education": ("education", "academic background"),
-    "skills": ("skills", "technical skills", "technology stack"),
+    "experience": ("experience", "work experience", "professional experience", "employment", "employment history", "work history", "career history"),
+    "education": ("education", "academic background", "academic qualifications", "qualifications"),
+    "skills": ("skills", "technical skills", "technology stack", "core competencies", "competencies", "key skills"),
     "projects": ("projects", "project experience"),
     "certifications": ("certifications", "certificates", "professional certifications"),
     "awards": ("awards", "achievements", "honours", "honors"),
 }
+
+
+def assess_resume_suitability(text):
+    """Check that extracted content resembles a resume before it is accepted."""
+    text = (text or "").strip()
+    if not text:
+        return False, "We could not read any text from this file. Upload a text-based PDF, DOCX, or TXT resume."
+
+    lower = text.casefold()
+    word_count = len(re.findall(r"\b[\w'+-]+\b", text))
+    raw_lines = [line.strip() for line in text.splitlines() if line.strip()]
+    lines = {line.casefold().rstrip(":") for line in raw_lines}
+    present_sections = set()
+    for section, aliases in RESUME_SECTIONS.items():
+        if any(alias in lines for alias in aliases) or any(
+            re.search(rf"(?:^|[\n|])\s*{re.escape(alias)}\s*:?\s*(?:$|[\n|])", text, flags=re.I)
+            for alias in aliases
+        ):
+            present_sections.add(section)
+    email_signal = bool(re.search(r"\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b", lower))
+    linkedin_signal = "linkedin.com/in/" in lower
+    phone_signal = bool(re.search(r"(?<!\d)(?:\+?\d[\d ()-]{7,}\d)(?!\d)", text))
+    contact_signal = email_signal or linkedin_signal or phone_signal
+    date_signal = bool(re.search(r"\b(?:19|20)\d{2}\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b", lower))
+    role_signal = any(term in lower for term in (
+        "university", "polytechnic", "diploma", "bachelor", "master", "intern", "manager",
+        "engineer", "developer", "analyst", "consultant", "executive", "assistant", "coordinator",
+    ))
+    editorial_markers = sum(bool(re.search(pattern, lower, flags=re.M)) for pattern in (
+        r"^\s*by\s+[a-z]", r"\bpublished\s+(?:on\s+)?(?:19|20)\d{2}\b", r"\babstract\b",
+        r"\bintroduction\b", r"\bconclusion\b", r"\breferences\b", r"\bthis article\b",
+    ))
+    has_core_sections = (
+        "experience" in present_sections and bool({"education", "skills", "projects"} & present_sections)
+    ) or {"education", "skills"}.issubset(present_sections)
+
+    is_resume = all((
+        25 <= word_count <= 1500,
+        contact_signal,
+        len(present_sections) >= 2,
+        has_core_sections,
+        role_signal,
+        date_signal,
+        editorial_markers < 2,
+    ))
+    if not is_resume:
+        missing = []
+        if not contact_signal:
+            missing.append("contact details")
+        if len(present_sections) < 2 or not has_core_sections:
+            missing.append("recognisable resume sections")
+        if not role_signal or not date_signal:
+            missing.append("dated education or work history")
+        if editorial_markers >= 2:
+            missing.append("content that reads like an article rather than a resume")
+        detail = ", ".join(missing) or "enough structured resume information"
+        return False, f"This document does not pass the resume structure check because we could not confirm {detail}. Check the file or complete the guided resume instead."
+    return True, ""
 
 
 def extract_resume_text(source):
@@ -76,11 +134,65 @@ def _section(text, headings):
     return "\n".join(collected)
 
 
+def _resume_month(value):
+    """Convert common resume year/month text to the HTML month input format."""
+    match = re.search(r"\b((?:19|20)\d{2})(?:[-/](0?[1-9]|1[0-2]))?\b", value or "")
+    if not match:
+        return ""
+    return f"{match.group(1)}-{int(match.group(2) or 1):02d}"
+
+
+def _experience_entries(experience_text, detected_skills):
+    """Create an editable guided entry from extracted experience text."""
+    lines = [line.strip() for line in experience_text.splitlines() if line.strip()]
+    if not lines:
+        return []
+    heading = lines[0]
+    position = heading
+    company = ""
+    for separator in (" — ", " – ", " | ", " at ", " @ "):
+        if separator in heading:
+            position, company = (part.strip() for part in heading.split(separator, 1))
+            break
+    if not company and "," in heading and not re.search(r"\b(?:19|20)\d{2}\b", heading):
+        position, company = (part.strip() for part in heading.split(",", 1))
+
+    date_source = " ".join(lines[:3])
+    dates = re.findall(r"\b(?:19|20)\d{2}(?:[-/](?:0?[1-9]|1[0-2]))?\b", date_source)
+    current = bool(re.search(r"\b(?:present|current|now)\b", date_source, flags=re.I))
+    detail_lines = lines[1:]
+    if detail_lines and (dates or current) and re.search(r"\b(?:19|20)\d{2}|\bpresent\b|\bcurrent\b", detail_lines[0], flags=re.I):
+        detail_lines = detail_lines[1:]
+    return [{
+        "position": position[:200],
+        "company": company[:200],
+        "start_date": _resume_month(dates[0]) if dates else "",
+        "end_date": _resume_month(dates[1]) if len(dates) > 1 and not current else "",
+        "current": current,
+        "skills": ", ".join(detected_skills),
+        "achievements": "\n".join(detail_lines)[:4000],
+    }]
+
+
 def autofill_profile_data(text, existing=None):
     """Return only fields that can be confidently inferred and are still blank."""
     existing = existing or {}
     lower = text.casefold()
     updates = {}
+    email = re.search(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b", text)
+    if email and not existing.get("email"):
+        updates["email"] = email.group(0)
+    phone = re.search(r"(?<!\d)(?:\+?\d[\d ()-]{7,}\d)(?!\d)", text)
+    if phone and not existing.get("phone"):
+        updates["phone"] = re.sub(r"\s+", " ", phone.group(0)).strip()
+
+    if not existing.get("name"):
+        ignored = {alias for aliases in RESUME_SECTIONS.values() for alias in aliases} | {"resume", "curriculum vitae", "cv"}
+        for line in (item.strip() for item in text.splitlines()[:10]):
+            words = re.findall(r"[A-Za-z][A-Za-z'’-]*", line)
+            if 2 <= len(words) <= 5 and line.casefold().rstrip(":") not in ignored and "@" not in line and "http" not in line.casefold() and not re.search(r"\d", line):
+                updates["name"] = " ".join(words)
+                break
     skills = [skill for skill in KNOWN_SKILLS if re.search(rf"(?<![a-z0-9]){re.escape(skill.casefold())}(?![a-z0-9])", lower)]
     if skills and not existing.get("skills"):
         updates["skills"] = ", ".join(skills)
@@ -92,12 +204,17 @@ def autofill_profile_data(text, existing=None):
     if portfolio and not existing.get("portfolio"):
         updates["portfolio"] = portfolio.group(0).rstrip(".")
 
-    experience = _section(text, {"experience", "work experience", "employment"})
+    experience = _section(text, set(RESUME_SECTIONS["experience"]))
     if experience and not existing.get("experience"):
         updates["experience"] = experience[:4000]
+    if experience and not existing.get("experience_entries"):
+        updates["experience_entries"] = _experience_entries(experience, skills)
     certifications = _section(text, {"certifications", "certificates", "professional certifications"})
     if certifications and not existing.get("certifications"):
         updates["certifications"] = certifications[:2000]
+    awards = _section(text, set(RESUME_SECTIONS["awards"]))
+    if awards and not existing.get("awards"):
+        updates["awards"] = awards[:2000]
 
     if not existing.get("career"):
         career_keywords = {
@@ -137,6 +254,25 @@ def autofill_profile_data(text, existing=None):
         for education_level, keywords in education.items():
             if any(keyword in lower for keyword in keywords):
                 updates["education"] = education_level
+                break
+
+    if not existing.get("institution"):
+        institutions = {
+            "nus": ("national university of singapore", "nus"),
+            "ntu": ("nanyang technological university", "ntu"),
+            "smu": ("singapore management university", "smu"),
+            "sutd": ("singapore university of technology and design", "sutd"),
+            "sit": ("singapore institute of technology", "sit"),
+            "suss": ("singapore university of social sciences", "suss"),
+            "singapore-polytechnic": ("singapore polytechnic",),
+            "ngee-ann-polytechnic": ("ngee ann polytechnic",),
+            "temasek-polytechnic": ("temasek polytechnic",),
+            "republic-polytechnic": ("republic polytechnic",),
+            "nanyang-polytechnic": ("nanyang polytechnic",),
+        }
+        for value, names in institutions.items():
+            if any(re.search(rf"(?<![a-z]){re.escape(name)}(?![a-z])", lower) for name in names):
+                updates["institution"] = value
                 break
 
     return updates

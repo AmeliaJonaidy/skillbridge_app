@@ -5,17 +5,32 @@
 {% block content %}
 <div class="page-head">
     <div>
-        <h1>My resume</h1>
+        <h1>{% if main_resume %}Current selected resume: {{ main_resume.title|cut:"Resume for " }}{% else %}My resume{% endif %}</h1>
         <p class="sub">Review your generated resume and feedback from the uploaded source file.</p>
+        {% if main_resume %}<a class="text-link" href="#resume-fit">Change resume type ↓</a>{% endif %}
     </div>
 </div>
 
 <div class="content-columns">
+    <div class="resume-top-grid">
+    <main class="resume-main-column">
+    {% if main_resume %}
     <article class="resume-paper">
-        <h2>{{ profile_data.name|default:request.user.username }}</h2>
-        <p>{{ profile_data.career|default:"Career area not set" }} · {{ profile_data.institution|default:"Institution not set" }}</p>
+        <pre class="resume-draft">{{ main_resume.content }}</pre>
+    </article>
+    {% else %}
+    <article class="resume-paper">
+        <header class="resume-document-header">
+            <div>
+                <h2>{{ profile_data.name|default:request.user.username }}</h2>
+                <p>{{ profile_data.career|default:"Career area not set" }} · {{ profile_data.specialisation|default:"Specialisation not set" }}</p>
+            </div>
+            <p class="resume-document-contact">{{ request.user.email }}{% if profile_data.phone %}<br>{{ profile_data.phone }}{% endif %}{% if profile_data.linkedin %}<br>{{ profile_data.linkedin }}{% endif %}</p>
+        </header>
         <h3>Profile</h3>
         <p>Interested in {{ profile_data.specialisation|default:"a new career direction" }}.</p>
+
+        <h3>Education</h3><p>{{ profile_data.education|default:"Education level not set" }}{% if profile_data.institution %}<br>{{ profile_data.institution }}{% endif %}</p>
 
         <h3>Experience</h3>
         <p>{{ profile_data.experience|default:"Add your work experience through My profile."|linebreaksbr }}</p>
@@ -23,16 +38,24 @@
         <h3>Certifications</h3>
         <p>{{ profile_data.certifications|default:"No certifications added yet."|linebreaksbr }}</p>
 
-        <h3>Skills</h3>
-        <p>{{ profile_data.skills|default:"Add your technical skills through My profile."|linebreaksbr }}</p>
+        <section class="resume-document-highlight">
+            <h3>Skills, work and achievements</h3>
+            <div class="resume-document-columns">
+                <div><h4>Technical skills</h4><p>{{ profile_data.skills|default:"Add your technical skills through My profile."|linebreaksbr }}</p></div>
+                <div><h4>Projects and portfolio</h4><p>{{ profile_data.portfolio|default:"No portfolio links added yet."|linebreaksbr }}</p></div>
+            </div>
+            <h4>Awards and achievements</h4>
+            <p>{{ profile_data.awards|default:"No awards or achievements added yet."|linebreaksbr }}</p>
+        </section>
+
+        <h3>LinkedIn</h3>
+        <p>{{ profile_data.linkedin|default:"No LinkedIn profile added yet." }}</p>
     </article>
+    {% endif %}
 
-    <aside class="card">
-        <h2>Tailor your resume</h2>
-        <p class="sub">Choose a job to create an editable job-specific draft.</p>
-        <a class="primary button" href="{% url 'candidate_jobs' %}">Choose a job</a>
-    </aside>
+    </main>
 
+    <aside class="resume-sidebar">
     {% if feedback %}
     <aside class="card">
         <h2>Resume feedback</h2>
@@ -43,6 +66,39 @@
             {% for suggestion in feedback.suggestions %}<li>{{ suggestion }}</li>{% empty %}<li>Your resume has the main checks covered.</li>{% endfor %}
         </ul>
     </aside>
+    {% endif %}
+    </aside>
+    </div>
+
+    {% if fit_matrix %}
+    <section class="card resume-fit-card" id="resume-fit">
+        <h2>Resume fit by interest</h2>
+        <p class="sub">A transparent evidence match, not a hiring probability. Improve each direction by adding proof of the missing signals.</p>
+        <div class="resume-fit-table-wrap">
+            <table class="resume-fit-table">
+                <thead>
+                    <tr><th>Selected direction</th><th>Evidence fit</th><th>Matched signals</th><th>Missing signals</th><th>Tailored output</th></tr>
+                </thead>
+                <tbody>
+                    {% for fit in fit_matrix %}
+                    <tr>
+                        <th scope="row">{{ fit.label }}</th>
+                        <td><strong>{{ fit.score }}%</strong><br><span class="muted">{{ fit.summary }}</span></td>
+                        <td>{% if fit.matched %}{{ fit.matched|join:", " }}{% else %}<span class="muted">None detected yet</span>{% endif %}</td>
+                        <td>{% if fit.missing %}{{ fit.missing|join:", " }}{% else %}<span class="progress-green">No tracked gaps</span>{% endif %}</td>
+                        <td>
+                            <form method="post" action="{% url 'tailor_resume_for_interest' fit.key %}">
+                                {% csrf_token %}
+                                <button class="button small" type="submit">Tailor resume</button>
+                            </form>
+                            {% if fit.tailored_resume_id %}<a class="text-link" href="{% url 'resume_detail' fit.tailored_resume_id %}">Open output →</a>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
     {% endif %}
 </div>
 {% endblock %}

@@ -18,6 +18,46 @@ PROFILE_FIELD_MAP = {
 }
 
 
+def add_verified_certificate_to_resume(user, milestone):
+    """Add a verified certificate to the candidate's resume profile once."""
+    if milestone.status != "completed":
+        return False
+
+    from accounts.models import UserProfile
+
+    profile = UserProfile.objects.filter(user=user).first()
+    if not profile:
+        return False
+
+    data = dict(profile.profile_data or {})
+    entries = data.get("certification_entries", [])
+    if not isinstance(entries, list):
+        entries = []
+    title = milestone.certification.title
+    if any(isinstance(entry, dict) and entry.get("name") == title for entry in entries):
+        return False
+
+    entry = {
+        "name": title,
+        "issuer": milestone.certification.provider,
+        "issue_date": "",
+        "expiry_date": "",
+        "no_expiry": False,
+        "credential_id": milestone.certificate_id,
+        "skills": milestone.certification.skills,
+    }
+    entries.append(entry)
+    data["certification_entries"] = entries
+    data["certifications"] = "\n".join(
+        f"{item['name']} — {item['issuer']}" if item.get("issuer") else item["name"]
+        for item in entries
+        if item.get("name")
+    )
+    profile.profile_data = data
+    profile.save(update_fields=["profile_data"])
+    return True
+
+
 def sync_candidate_profile(user, data):
     candidate_profile, _ = CandidateProfile.objects.get_or_create(user=user)
     for data_key, model_field in PROFILE_FIELD_MAP.items():

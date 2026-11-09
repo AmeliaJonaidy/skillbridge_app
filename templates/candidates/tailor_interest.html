@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Tailor resume · SkillBridge{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Tailor resume for {{ path.label }}</h1>
+        <p class="sub">Briefly verify how you used each matched skill before it is added to your resume.</p>
+    </div>
+</div>
+
+<section class="card">
+    <p class="muted">Matched skills are carried into the draft automatically. Tell us how you used each missing signal and for how long before it is added.</p>
+    {% if errors %}
+        <div class="card profile-message error">
+            <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        </div>
+    {% endif %}
+    <form method="post" class="stack">
+        {% csrf_token %}
+        {% for question in skill_questions %}
+            <fieldset class="card">
+                <legend>
+                    <strong>{{ question.name }}</strong>
+                    <span class="pill">Missing signal</span>
+                </legend>
+                <label class="field">
+                    How have you used {{ question.name }}?
+                    <textarea name="description_{{ question.name }}" rows="3" required placeholder="Example: Used {{ question.name }} in a project, course, internship, or work task."></textarea>
+                </label>
+                <label class="field">
+                    How long have you used {{ question.name }}?
+                    <input type="text" name="duration_{{ question.name }}" required placeholder="Example: 6 months">
+                </label>
+            </fieldset>
+        {% empty %}
+            <p>No tracked skills were found for this direction.</p>
+        {% endfor %}
+        <button class="primary button" type="submit">Generate tailored resume</button>
+    </form>
+</section>
+{% endblock %}

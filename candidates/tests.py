@@ -58,7 +58,24 @@ class ResumeAutofillTests(TestCase):
         self.assertContains(response, "Resume feedback")
         self.assertContains(response, "Detected skills")
 
-    def test_pro_learning_recommends_certification_for_missing_job_skill(self):
+    def test_saved_resume_includes_skills_portfolio_and_achievements(self):
+        profile = UserProfile.objects.get(user=self.user)
+        profile.profile_data = {
+            "name": "Alex Candidate",
+            "skills": "Python, Django",
+            "portfolio": "https://github.com/alex/project",
+            "awards": "Hackathon winner",
+        }
+        profile.save(update_fields=["profile_data"])
+
+        response = self.client.get("/resume/")
+
+        self.assertContains(response, "Skills, work and achievements")
+        self.assertContains(response, "Python, Django")
+        self.assertContains(response, "https://github.com/alex/project")
+        self.assertContains(response, "Hackathon winner")
+
+    def test_pro_learning_shows_missing_job_skill_without_duplicate_recommendation_panel(self):
         profile = UserProfile.objects.get(user=self.user)
         profile.plan = "pro"
         profile.profile_data = {
@@ -91,8 +108,9 @@ class ResumeAutofillTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Cloud Backend Engineer")
-        self.assertContains(response, "AWS Cloud Foundations")
         self.assertContains(response, "AWS")
+        self.assertNotContains(response, "Recommended certifications")
+        self.assertNotContains(response, "AWS Cloud Foundations")
 
 
 class CareerProgressTests(TestCase):
@@ -145,9 +163,42 @@ class CareerProgressTests(TestCase):
         response = self.client.get(reverse("candidate_learning"))
 
         self.assertContains(response, "Fintech")
-        self.assertNotContains(response, "Machine learning")
+        self.assertNotContains(response, 'value="machine-learning" checked')
+        self.assertNotContains(response, "<strong>Machine learning</strong>", html=True)
         self.assertNotContains(response, "ai-ml")
-        self.assertNotContains(response, "Microbiology")
+        self.assertNotContains(response, 'value="microbiology" checked')
+
+    def test_skill_development_shows_cards_for_profile_interests(self):
+        user = User.objects.create_user(username="track-picker", password="Password123!")
+        UserProfile.objects.create(
+            user=user,
+            role="candidate",
+            profile_data={"career": "technology", "career_interests": ["software-engineering", "cybersecurity"]},
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("candidate_learning"))
+        self.assertNotContains(response, "direction-picker-panel")
+        self.assertContains(response, "Update interests")
+        self.assertContains(response, "Software engineering")
+        self.assertContains(response, "Open certifications")
+        self.assertContains(response, "Certificate ID")
+
+    def test_evidence_based_progress_appears_inside_skill_track(self):
+        user = User.objects.create_user(username="ai-milestones", password="Password123!")
+        UserProfile.objects.create(
+            user=user,
+            role="candidate",
+            profile_data={"career_interests": ["ai-engineering"], "skills": "Python"},
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("candidate_learning"))
+
+        self.assertContains(response, "AI engineering")
+        self.assertContains(response, "17%")
+        self.assertContains(response, "AI and programming foundations")
+        self.assertNotContains(response, "Milestone summary")
 
     def test_progress_only_contains_selected_career_directions(self):
         user = User.objects.create_user(username="progress", password="Password123!")
@@ -204,7 +255,7 @@ class CareerProgressTests(TestCase):
         response = self.client.get(reverse("candidate_learning"))
 
         self.assertContains(response, "Software engineering")
-        self.assertContains(response, "ROADMAP FROM YOUR CURRENT EVIDENCE")
+        self.assertContains(response, "Roadmap from your current evidence")
         self.assertContains(response, "Google IT Automation with Python Professional Certificate")
 
     def test_uploaded_resume_evidence_changes_the_target_roadmap(self):
@@ -232,6 +283,31 @@ class CareerProgressTests(TestCase):
         self.assertIn("Git", progress["matched"])
         self.assertNotIn("Python", progress["missing"])
 
+    def test_completed_data_analytics_certificate_covers_foundations(self):
+        user = User.objects.create_user(username="data-analytics-complete", ******)
+        UserProfile.objects.create(
+            user=user,
+            role="candidate",
+            profile_data={"career_interests": ["machine-learning"]},
+        )
+        certificate = Certification.objects.create(
+            title="Google Advanced Data Analytics Professional Certificate",
+            provider="Coursera",
+            career_area="machine-learning",
+            skills="Python, SQL, statistics, machine learning, analytics",
+        )
+        CandidateMilestone.objects.create(
+            candidate=user,
+            certification=certificate,
+            status="completed",
+        )
+
+        goal = career_progress(user, ["machine-learning"])[0]
+
+        self.assertNotIn("SQL", goal["missing"])
+        self.assertEqual(goal["milestones"][0]["status"], "completed")
+        self.assertFalse(any("for SQL" in course["title"] for course in goal["recommendations"]))
+
     def test_unselected_direction_is_not_added_to_progress(self):
         user = User.objects.create_user(username="selected-only", password="Password123!")
         UserProfile.objects.create(user=user, role="candidate", profile_data={"skills": "Python"})
@@ -241,7 +317,7 @@ class CareerProgressTests(TestCase):
         self.assertEqual(len(progress), 1)
         self.assertEqual(progress[0]["label"], "Marketing")
 
-    def test_completing_catalogue_course_updates_readiness_evidence(self):
+    def test_certificate_submission_waits_for_verification_before_progress_updates(self):
         user = User.objects.create_user(username="course-complete", password="Password123!")
         UserProfile.objects.create(
             user=user,
@@ -261,6 +337,8 @@ class CareerProgressTests(TestCase):
                         "action": "complete_course",
                         "career_key": "software-engineering",
                         "course_title": "Google IT Automation with Python Professional Certificate",
+                        "certificate_id": "CERT-123456",
+                        "verification_url": "https://www.coursera.org/account/accomplishments/verify/ABC123XYZ",
                         "evidence_file": SimpleUploadedFile(
                             "python-certificate.pdf",
                             b"%PDF-1.4 certificate evidence",
@@ -270,15 +348,99 @@ class CareerProgressTests(TestCase):
                 )
 
         self.assertEqual(response.status_code, 302)
-        profile = UserProfile.objects.get(user=user)
-        self.assertIn(
-            "Google IT Automation with Python Professional Certificate",
-            profile.profile_data["completed_career_courses"],
-        )
         milestone = CandidateMilestone.objects.get(candidate=user)
-        self.assertEqual(milestone.status, "completed")
+        self.assertEqual(milestone.status, "pending_verification")
         self.assertTrue(milestone.evidence_file)
+        self.assertEqual(career_progress(user, ["software-engineering"])[0]["percent"], 40)
+        milestone.status = "completed"
+        milestone.save(update_fields=["status"])
         self.assertEqual(career_progress(user, ["software-engineering"])[0]["percent"], 80)
+
+    def test_short_fake_certificate_id_is_rejected(self):
+        user = User.objects.create_user(username="fake-certificate", password="Password123!")
+        UserProfile.objects.create(user=user, role="candidate", profile_data={"career_interests": ["software-engineering"]})
+        self.client.force_login(user)
+
+        response = self.client.post("/learning/", {
+            "action": "complete_course",
+            "career_key": "software-engineering",
+            "course_title": "Google IT Automation with Python Professional Certificate",
+            "certificate_id": "abcd",
+            "verification_url": "https://www.coursera.org/account/accomplishments/verify/ABC123XYZ",
+            "evidence_file": SimpleUploadedFile("evidence.pdf", b"%PDF-1.4 evidence", content_type="application/pdf"),
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(CandidateMilestone.objects.filter(candidate=user).exists())
+
+    def test_certificate_url_must_match_the_course_provider(self):
+        user = User.objects.create_user(username="wrong-provider", password="Password123!")
+        UserProfile.objects.create(user=user, role="candidate", profile_data={"career_interests": ["software-engineering"]})
+        self.client.force_login(user)
+
+        response = self.client.post("/learning/", {
+            "action": "complete_course",
+            "career_key": "software-engineering",
+            "course_title": "Google IT Automation with Python Professional Certificate",
+            "certificate_id": "CERT-123456",
+            "verification_url": "https://www.credly.com/badges/11111111-1111-1111-1111-111111111111",
+            "evidence_file": SimpleUploadedFile("evidence.pdf", b"%PDF-1.4 evidence", content_type="application/pdf"),
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(CandidateMilestone.objects.filter(candidate=user).exists())
+
+    def test_coursera_share_url_creates_visible_pending_submission(self):
+        user = User.objects.create_user(username="coursera-share", password="Password123!")
+        UserProfile.objects.create(user=user, role="candidate", profile_data={"career_interests": ["software-engineering"]})
+        self.client.force_login(user)
+
+        response = self.client.post("/learning/", {
+            "action": "complete_course",
+            "career_key": "software-engineering",
+            "course_title": "Google IT Automation with Python Professional Certificate",
+            "certificate_id": "CERT-123456",
+            "verification_url": "https://www.coursera.org/share/11111111-1111-1111-1111-111111111111",
+            "evidence_file": SimpleUploadedFile("evidence.pdf", b"%PDF-1.4 evidence", content_type="application/pdf"),
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "1 pending verification")
+        self.assertContains(response, "was submitted and is pending administrator verification")
+        self.assertEqual(CandidateMilestone.objects.get(candidate=user).status, "pending_verification")
+
+        status_response = self.client.get(reverse("candidate_verification_status"))
+        self.assertEqual(status_response.status_code, 200)
+        certificate = status_response.json()["certificates"][0]
+        self.assertEqual(certificate["status"], "pending_verification")
+        self.assertEqual(certificate["title"], "Google IT Automation with Python Professional Certificate")
+
+        withdraw_response = self.client.post("/learning/", {
+            "action": "unsubmit_course",
+            "course_title": "Google IT Automation with Python Professional Certificate",
+        }, HTTP_X_REQUESTED_WITH="XMLHttpRequest", HTTP_ACCEPT="application/json")
+        self.assertEqual(withdraw_response.status_code, 200)
+        self.assertTrue(withdraw_response.json()["ok"])
+        self.assertFalse(CandidateMilestone.objects.filter(candidate=user).exists())
+
+    def test_certificate_ajax_submission_returns_status_without_redirect(self):
+        user = User.objects.create_user(username="ajax-certificate", password="Password123!")
+        UserProfile.objects.create(user=user, role="candidate", profile_data={"career_interests": ["software-engineering"]})
+        self.client.force_login(user)
+
+        response = self.client.post("/learning/", {
+            "action": "complete_course",
+            "career_key": "software-engineering",
+            "course_title": "Google IT Automation with Python Professional Certificate",
+            "certificate_id": "CERT-654321",
+            "verification_url": "https://www.coursera.org/share/22222222-2222-2222-2222-222222222222",
+            "evidence_file": SimpleUploadedFile("evidence.pdf", b"%PDF-1.4 evidence", content_type="application/pdf"),
+        }, HTTP_X_REQUESTED_WITH="XMLHttpRequest", HTTP_ACCEPT="application/json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "pending_verification")
+        self.assertEqual(response.json()["status_label"], "Pending verification")
+        self.assertNotIn("Location", response.headers)
 
     def test_course_cannot_be_marked_completed_without_uploaded_evidence(self):
         user = User.objects.create_user(username="course-proof", password="Password123!")

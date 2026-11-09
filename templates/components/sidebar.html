@@ -1,9 +1,9 @@
+{% load static %}
 <aside class="sidebar" id="skillbridge-sidebar" aria-label="SkillBridge workspace navigation">
     <a class="logo" href="{% url 'home' %}" aria-label="SkillBridge dashboard" title="SkillBridge">
-        <span class="logo-mark">sb</span>
-        <span class="logo-name">SkillBridge</span>
+        <span class="brand-logo-shell brand-logo-sidebar"><img class="brand-logo-image" src="{% static 'skillbridge/images/skillbridge-logo.png' %}" alt="SkillBridge"></span>
     </a>
-    <p class="workspace-label">{% if role == 'recruiter' %}RECRUITER WORKSPACE{% else %}APPLICANT WORKSPACE{% endif %}</p>
+    <p class="workspace-label">{% if role == 'recruiter' %}Recruiter workspace{% else %}Applicant workspace{% endif %}</p>
     <nav class="nav" aria-label="Main navigation">
         {% if role == 'recruiter' %}
         <a class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}" aria-label="Dashboard" data-label="Dashboard" title="Dashboard"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span><span class="nav-label">Dashboard</span></a>
@@ -29,6 +29,6 @@
             <span>Collapse</span>
         </button>
         <a class="plan-link" href="{% url 'plans' %}" aria-label="SkillBridge Pro — view plans" title="SkillBridge Pro — view plans"><span class="sidebar-bottom-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l2.3 5.2L20 10l-4.2 3.8L17 19l-5-2.8L7 19l1.2-5.2L4 10l5.7-1.8z"/></svg></span><span class="sidebar-bottom-label">SkillBridge Pro</span><span class="text-link sidebar-bottom-label">View plans</span></a>
-        <a class="row ghost sidebar-profile" href="{% if role == 'recruiter' %}{% url 'recruiter_company' %}{% else %}{% url 'candidate_profile' %}{% endif %}" aria-label="{{ request.user.username }} — {{ role|title }} account" title="{{ request.user.username }} — {{ role|title }} account"><span class="person">{{ request.user.profile.initials }}</span><span class="sidebar-profile-copy"><b style="font-size:12px">{{ request.user.username }}</b><span class="muted" style="display:block;font-size:10px;margin-top:4px">{{ role|title }} account</span></span></a>
+        <a class="row ghost sidebar-profile" href="{% if role == 'recruiter' %}{% url 'recruiter_company' %}{% else %}{% url 'candidate_profile' %}{% endif %}" aria-label="{{ request.user.username }} — {{ role|title }} account" title="{{ request.user.username }} — {{ role|title }} account"><span class="person">{% if request.user.profile.profile_photo %}<img src="{{ request.user.profile.profile_photo.url }}" alt="">{% else %}{{ request.user.profile.initials }}{% endif %}</span><span class="sidebar-profile-copy"><b style="font-size:12px">{{ request.user.username }}</b><span class="muted" style="display:block;font-size:10px;margin-top:4px">{{ role|title }} account</span></span></a>
     </div>
 </aside>

@@ -1,3 +1,81 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Sign in · SkillBridge{% endblock %}
-{% block page %}<div class="auth-shell auth-login-shell"><aside class="auth-story" aria-hidden="true"></aside><section class="auth-panel"><div class="auth-form-wrap"><p class="eyebrow">WELCOME BACK</p><h2>Sign in to SkillBridge.</h2><p class="sub">Access your applicant or hiring workspace.</p><form method="post">{% csrf_token %}{% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}{{ form.as_p }}<button class="primary full" type="submit">Sign in →</button></form><p class="sub" style="margin-top:20px">New to SkillBridge? <a href="{% url 'signup' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}">Create an account</a></p></div><p class="auth-footer">Find work. Build your team.</p></section></div>{% endblock %}
+{% block page %}
+<div class="auth-shell auth-login-shell">
+    <aside class="auth-story login-benefits">
+        <div class="logo"><span class="brand-logo-shell brand-logo-auth"><img class="brand-logo-image" src="{% static 'skillbridge/images/skillbridge-logo.png' %}" alt="SkillBridge"></span></div>
+        <div class="login-benefits-copy">
+            <p class="eyebrow">One platform, better connections</p>
+            <h1>Find the right opportunity or the right person.</h1>
+            <section class="login-learning-providers" aria-label="Learning providers">
+                <p>Gain skills from recognised learning providers.</p>
+                <div class="provider-logo-list">
+                    <span class="provider-logo provider-logo-coursera"><b>●</b> Coursera</span>
+                    <span class="provider-logo provider-logo-harvard"><b>H</b> Harvard / edX</span>
+                    <span class="provider-logo provider-logo-google"><b>G</b> Google</span>
+                </div>
+            </section>
+            <div class="login-benefit-grid">
+                <article class="login-flip-card" tabindex="0" aria-label="Candidate benefits. Hover or focus to read more.">
+                    <div class="login-flip-card-inner">
+                        <section class="login-flip-front">
+                            <span class="login-card-number" aria-hidden="true">01</span>
+                            <h2>Candidates</h2>
+                            <span class="login-flip-hint">Hover over card to see more ↗</span>
+                        </section>
+                        <section class="login-flip-back">
+                            <h2>Candidate benefits</h2>
+                            <ul>
+                                <li>Find relevant jobs more efficiently.</li>
+                                <li>Build a professionally formatted resume.</li>
+                                <li>Understand skill gaps and career readiness.</li>
+                                <li>Track applications, interviews, and learning goals.</li>
+                            </ul>
+                        </section>
+                    </div>
+                </article>
+                <article class="login-flip-card" tabindex="0" aria-label="Recruiter benefits. Hover or focus to read more.">
+                    <div class="login-flip-card-inner">
+                        <section class="login-flip-front">
+                            <span class="login-card-number" aria-hidden="true">02</span>
+                            <h2>Recruiters</h2>
+                            <span class="login-flip-hint">Hover over card to see more ↗</span>
+                        </section>
+                        <section class="login-flip-back">
+                            <h2>Recruiter benefits</h2>
+                            <ul>
+                                <li>Shortlist suitable candidates faster.</li>
+                                <li>Compare skills with explainable matching.</li>
+                                <li>Manage listings, applications, and interviews.</li>
+                                <li>Build a trusted and verified company presence.</li>
+                            </ul>
+                        </section>
+                    </div>
+                </article>
+            </div>
+            <section class="login-terms">
+                <h2>Terms and responsible use</h2>
+                <p>By signing in, you agree to provide accurate information, respect candidate privacy, use hiring tools fairly, and avoid scams, harassment, or discriminatory content. Premium access is subject to successful subscription payment and may be removed when payment ends.</p>
+            </section>
+        </div>
+        <p class="auth-story-footer">SkillBridge · One platform, better connections.</p>
+    </aside>
+    <section class="auth-panel">
+        <div class="login-form-card">
+            <div class="auth-form-wrap">
+                <span class="brand-logo-shell brand-logo-form"><img class="brand-logo-image" src="{% static 'skillbridge/images/skillbridge-logo.png' %}" alt="SkillBridge"></span>
+                <p class="eyebrow">Welcome back</p>
+                <h2>Sign in to SkillBridge</h2>
+                <p class="sub">Access your applicant or recruiter workspace.</p>
+                <form method="post">{% csrf_token %}{% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}{{ form.as_p }}<button class="primary full" type="submit">Sign in →</button></form>
+                <div class="login-signup-option">
+                    <span>or</span>
+                    <a class="button full" href="{% url 'signup' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}">Create an account →</a>
+                    <small>Join as a candidate or recruiter.</small>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

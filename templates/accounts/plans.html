@@ -13,7 +13,7 @@
 
 <section class="plan-grid">
     <article class="card plan-card">
-        <p class="eyebrow">CURRENT PLAN</p>
+        <p class="eyebrow">Current plan</p>
         <h2>SkillBridge Free</h2>
         <p class="plan-price">S$0 <span>forever</span></p>
         <p class="sub">Get started with the essential tools for building your profile and managing your job search.</p>
@@ -78,10 +78,40 @@
     </article>
 </section>
 
+<section class="card account-card referral-card">
+    <p class="eyebrow">Refer a friend</p>
+    <h2>Give a week of Pro. Get a week of Pro.</h2>
+    <p class="sub">When a friend creates an account through your link, both of you receive seven days of SkillBridge Pro. If you already pay for Pro, Stripe moves your next billing date back by seven days.</p>
+    <div class="referral-link-row">
+        <input type="text" value="{{ referral_url }}" readonly data-referral-link aria-label="Your referral link">
+        <button class="button" type="button" data-copy-referral>Copy link</button>
+    </div>
+    <p class="sub">Referral code: <b>{{ profile.referral_code }}</b> · One reward per new account.</p>
+    {% if referrals %}
+        <div class="referral-history">
+            <h3>Your referrals</h3>
+            {% for referral in referrals %}<p>{{ referral.referred_user.username }} · {{ referral.get_status_display }} · {{ referral.created_at|date:"d M Y" }}</p>{% endfor %}
+        </div>
+    {% endif %}
+</section>
+
 {% if payments %}
 <section class="card account-card">
     <h2>Payment history</h2>
     {% for payment in payments %}<p>{{ payment.provider|title }} · {{ payment.currency }} {{ payment.amount }} · {{ payment.get_status_display }} · {{ payment.created_at|date:"d M Y" }}</p>{% endfor %}
 </section>
 {% endif %}
+<script>
+document.querySelector("[data-copy-referral]")?.addEventListener("click", async (event) => {
+    const field = document.querySelector("[data-referral-link]");
+    try {
+        await navigator.clipboard.writeText(field.value);
+        event.currentTarget.textContent = "Copied";
+    } catch (error) {
+        field.select();
+        document.execCommand("copy");
+        event.currentTarget.textContent = "Copied";
+    }
+});
+</script>
 {% endblock %}

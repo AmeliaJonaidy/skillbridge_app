@@ -21,9 +21,9 @@
     <div class="top-right">
         <a class="inbox-link" href="{% url 'inbox' %}" aria-label="Open inbox" title="Inbox">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6M4 16h5l1.5 2h3L15 16h5"/></svg>
-            {% if unread_notification_count %}<span class="inbox-badge">{{ unread_notification_count }}</span>{% endif %}
+            {% if unread_notification_count %}<span class="inbox-badge" aria-label="{{ unread_notification_count }} unread notification{% if unread_notification_count != 1 %}s{% endif %}"></span>{% endif %}
         </a>
-        <a class="person" href="{% if role == 'recruiter' %}{% url 'recruiter_company' %}{% else %}{% url 'candidate_profile' %}{% endif %}" style="border:0;text-decoration:none" aria-label="Open account">{{ request.user.profile.initials }}</a>
+        <a class="person" href="{% if role == 'recruiter' %}{% url 'recruiter_company' %}{% else %}{% url 'candidate_profile' %}{% endif %}" style="border:0;text-decoration:none" aria-label="Open account">{% if request.user.profile.profile_photo %}<img src="{{ request.user.profile.profile_photo.url }}" alt="">{% else %}{{ request.user.profile.initials }}{% endif %}</a>
         <a class="header-signout" href="{% url 'logout' %}">Sign out</a>
     </div>
 </header>

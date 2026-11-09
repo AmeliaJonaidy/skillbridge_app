@@ -1,5 +1,6 @@
 from django import forms
 
+from accounts.forms import validate_profile_photo
 from .choices import INDUSTRY_CHOICES
 from .models import Company
 from .services import website_logo_url
@@ -10,6 +11,13 @@ class CompanyLookupForm(forms.Form):
 
 
 class CompanyForm(forms.ModelForm):
+    profile_photo = forms.FileField(
+        label="Your profile photo",
+        required=False,
+        validators=[validate_profile_photo],
+        widget=forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
+
     class Meta:
         model = Company
         fields = [

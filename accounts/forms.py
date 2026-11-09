@@ -1,6 +1,35 @@
+from pathlib import Path
+
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+
+
+PROFILE_PHOTO_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024
+
+
+def validate_profile_photo(uploaded_file):
+    if not uploaded_file:
+        return uploaded_file
+    if Path(uploaded_file.name).suffix.casefold() not in PROFILE_PHOTO_EXTENSIONS:
+        raise forms.ValidationError("Upload a JPG, PNG, or WebP image.")
+    if uploaded_file.size > MAX_PROFILE_PHOTO_SIZE:
+        raise forms.ValidationError("Profile photos must be 5 MB or smaller.")
+    content_type = getattr(uploaded_file, "content_type", "")
+    if content_type and content_type not in {"image/jpeg", "image/png", "image/webp"}:
+        raise forms.ValidationError("The uploaded file must be an image.")
+    position = uploaded_file.tell()
+    header = uploaded_file.read(12)
+    uploaded_file.seek(position)
+    is_image = (
+        header.startswith(b"\xff\xd8\xff")
+        or header.startswith(b"\x89PNG\r\n\x1a\n")
+        or (header.startswith(b"RIFF") and header[8:12] == b"WEBP")
+    )
+    if not is_image:
+        raise forms.ValidationError("The uploaded file does not contain a valid JPG, PNG, or WebP image.")
+    return uploaded_file
 
 
 def _normalise_choices(choices):
@@ -37,7 +66,7 @@ class OnboardingForm(forms.Form):
             self.fields[field_name] = forms.CharField(widget=forms.Textarea(attrs={"rows": 4}), **field_kwargs)
         elif field_type == "file":
             self.fields[field_name] = forms.FileField(
-                widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.doc,.docx,.txt"}),
+                widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.docx,.txt"}),
                 **field_kwargs,
             )
         elif field_type == "choice":

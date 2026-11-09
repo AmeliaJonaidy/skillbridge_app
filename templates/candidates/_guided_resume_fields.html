@@ -1,0 +1,42 @@
+<div class="guided-resume-sections">
+    <section class="guided-resume-section">
+        <h3>Contact details</h3>
+        <div class="form-grid">
+            <label class="field">{{ resume_form.name.label }}{{ resume_form.name }}{{ resume_form.name.errors }}</label>
+            <label class="field">{{ resume_form.email.label }}{{ resume_form.email }}{{ resume_form.email.errors }}</label>
+            <label class="field">{{ resume_form.phone_country_code.label }}{{ resume_form.phone_country_code }}{{ resume_form.phone_country_code.errors }}</label>
+            <label class="field">{{ resume_form.phone.label }}{{ resume_form.phone }}{{ resume_form.phone.errors }}</label>
+        </div>
+    </section>
+    <section class="guided-resume-section">
+        <h3>Education and career direction</h3>
+        <div class="form-grid">
+            <label class="field">{{ resume_form.education.label }}{{ resume_form.education }}{{ resume_form.education.errors }}</label>
+            <label class="field">{{ resume_form.institution.label }}{{ resume_form.institution }}{{ resume_form.institution.errors }}</label>
+            <label class="field">{{ resume_form.career.label }}{{ resume_form.career }}{{ resume_form.career.errors }}</label>
+            <label class="field">{{ resume_form.specialisation.label }}{{ resume_form.specialisation }}{{ resume_form.specialisation.errors }}</label>
+        </div>
+    </section>
+    <section class="guided-resume-section">
+        <div class="experience-builder" data-experience-builder>
+            <div class="row between"><div><h3>Work experience</h3><small>Add each job or placement separately.</small></div><button class="button small" type="button" data-add-experience>+ Add experience</button></div>
+            <div class="experience-entry-list" data-experience-list></div>
+            <aside class="experience-cv-preview"><p class="eyebrow">Formatted preview</p><div data-experience-preview></div></aside>
+            {{ resume_form.experience }}{{ resume_form.experience_entries }}{{ resume_form.experience_entries.errors }}
+        </div>
+    </section>
+    <section class="guided-resume-section">
+        <div class="experience-builder" data-certification-builder>
+            <div class="row between"><div><h3>Certifications</h3><small>Add each certification separately.</small></div><button class="button small" type="button" data-add-certification>+ Add certification</button></div>
+            <div class="experience-entry-list" data-certification-list></div>
+            <aside class="experience-cv-preview"><p class="eyebrow">Formatted preview</p><div data-certification-preview></div></aside>
+            {{ resume_form.certifications }}{{ resume_form.certification_entries }}{{ resume_form.certification_entries.errors }}
+        </div>
+    </section>
+    <section class="guided-resume-section"><h3>Skills, work and achievements</h3><div class="form-grid">
+        <label class="field span2">{{ resume_form.skills.label }}{{ resume_form.skills }}{{ resume_form.skills.errors }}</label>
+        <label class="field span2">{{ resume_form.portfolio.label }}{{ resume_form.portfolio }}{{ resume_form.portfolio.errors }}</label>
+        <label class="field span2">{{ resume_form.awards.label }}{{ resume_form.awards }}{{ resume_form.awards.errors }}</label>
+        <label class="field span2">{{ resume_form.linkedin.label }}{{ resume_form.linkedin }}{{ resume_form.linkedin.errors }}</label>
+    </div></section>
+</div>

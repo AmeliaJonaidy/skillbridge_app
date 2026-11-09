@@ -12,11 +12,16 @@
 
 {% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
 
-<form method="post" class="card account-card">
+<form method="post" enctype="multipart/form-data" class="card account-card">
     {% csrf_token %}
     <div class="form-grid">
         {% for field in form %}
-            <label class="field {% if field.name == 'description' %}span2{% endif %}">{{ field.label }}{{ field }}{{ field.errors }}</label>
+            <label class="field {% if field.name == 'description' or field.name == 'profile_photo' %}span2{% endif %}">
+                {{ field.label }}
+                {% if field.name == 'profile_photo' and request.user.profile.profile_photo %}<img class="profile-photo-preview" src="{{ request.user.profile.profile_photo.url }}" alt="Current profile photo">{% endif %}
+                {{ field }}{{ field.errors }}
+                {% if field.name == 'profile_photo' %}<small class="muted">JPG, PNG, or WebP. Maximum 5 MB.</small>{% endif %}
+            </label>
         {% endfor %}
     </div>
     <div class="static-page-actions"><button class="primary" type="submit">Save company profile</button></div>

@@ -260,9 +260,13 @@ def company(request):
             lookup_initial = {key: value for key, value in lookup_data.items() if key in CompanyForm().fields}
         else:
             messages.info(request, "No company record was found. Enter the company details manually.")
-    form = CompanyForm(request.POST or None, instance=company, initial=lookup_initial)
+    form = CompanyForm(request.POST or None, request.FILES or None, instance=company, initial=lookup_initial)
     if request.method == "POST" and form.is_valid():
         company = form.save()
+        profile_photo = form.cleaned_data.get("profile_photo")
+        if profile_photo:
+            request.user.profile.profile_photo = profile_photo
+            request.user.profile.save(update_fields=["profile_photo"])
         recruiter.company = company
         recruiter.save(update_fields=["company"])
         messages.success(request, "Company profile saved.")

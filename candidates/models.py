@@ -48,6 +48,7 @@ class CandidateMilestone(models.Model):
     STATUS_CHOICES = [
         ("planned", "Planned"),
         ("in_progress", "In progress"),
+        ("pending_verification", "Pending verification"),
         ("completed", "Completed"),
     ]
 
@@ -63,6 +64,10 @@ class CandidateMilestone(models.Model):
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="planned")
     certificate_id = models.CharField(max_length=150, blank=True)
+    verification_url = models.URLField(blank=True, max_length=500)
+    verification_method = models.CharField(max_length=50, blank=True)
+    verification_details = models.TextField(blank=True)
+    verified_at = models.DateTimeField(blank=True, null=True)
     notes = models.TextField(blank=True)
     evidence_file = models.FileField(upload_to="certificate_evidence/", blank=True, null=True)
     completed_at = models.DateTimeField(blank=True, null=True)
