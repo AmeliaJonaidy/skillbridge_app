@@ -37,8 +37,11 @@
     <div class="job-card-footer">
         {% if has_pro and match %}
             <div>
-                <span class="match-label">{{ match.score }}% compatibility · {{ match.assessment }}</span>
-                {% if match.missing_skills %}<p class="muted">Gap: {{ match.missing_skills|join:", " }}</p>{% endif %}
+                <span class="match-label">Skill compatibility: {{ match.score }}% · {{ match.assessment }}</span>
+                {% if match.score_breakdown.ai_match %}
+                    <span class="match-label">AI compatibility: {{ match.score_breakdown.ai_match.earned }}%</span>
+                {% endif %}
+                {% if match.missing_skills %}<p class="muted">Missing skills: {{ match.missing_skills|join:", " }}</p>{% endif %}
             </div>
         {% elif not has_pro %}
             <span class="match-label">Pro compatibility score</span>
