@@ -10,6 +10,7 @@ import re
 from candidates.resume_parser import KNOWN_SKILLS, extract_resume_text
 
 from .models import JobMatch
+from .ml import predict_compatibility
 
 
 def _normalise(value):
@@ -224,6 +225,8 @@ def calculate_match(candidate, job):
         "evidence_match": {"earned": evidence_points, "max": 30, "reason": "Weighted evidence from projects, internships, and self-declared skills.", "details": evidence_reasons},
     }
     score = sum(component["earned"] for component in breakdown.values())
+    score, model_reason = predict_compatibility(breakdown, score)
+    breakdown["model"] = {"earned": score, "max": 100, **model_reason}
     matched = sorted(skill_lookup[key] for key in matched_keys)
     missing = sorted(skill_lookup[key] for key in skill_lookup if key not in matched_keys)
     return score, matched, missing, breakdown, _assessment(score)
