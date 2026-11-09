@@ -21,7 +21,19 @@
             {% csrf_token %}
             {% for field in form %}
                 <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'required_skill_choices' or field.name == 'preferred_skills' or field.name == 'skill_weights' or field.name == 'evidence_weights' %}span2{% endif %}">
-                    {{ field.label }}{{ field }}{{ field.errors }}
+                    {{ field.label }}
+                    {% if field.name == 'required_skill_choices' %}
+                        <div class="skills-picker" data-skills-picker>
+                            {{ field }}
+                            <input class="skills-picker-search" type="search" placeholder="Search skills, e.g. FastAPI or Java..." autocomplete="off" data-skills-search>
+                            <div class="skills-picker-suggestions" data-skills-suggestions hidden></div>
+                            <div class="skills-picker-selected" data-skills-selected></div>
+                            <small class="muted">{{ field.help_text }}</small>
+                        </div>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+                    {{ field.errors }}
                 </label>
             {% endfor %}
             <div class="static-page-actions span2">
@@ -31,4 +43,69 @@
         </form>
     {% endif %}
 </section>
+{% if company %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const picker = document.querySelector("[data-skills-picker]");
+    if (!picker) return;
+    const select = picker.querySelector("select");
+    const search = picker.querySelector("[data-skills-search]");
+    const suggestions = picker.querySelector("[data-skills-suggestions]");
+    const selected = picker.querySelector("[data-skills-selected]");
+    const options = [...select.options];
+
+    const renderSelected = () => {
+        selected.replaceChildren();
+        [...select.selectedOptions].forEach((option) => {
+            const chip = document.createElement("span");
+            chip.className = "skills-picker-chip";
+            chip.textContent = option.text;
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "skills-picker-remove";
+            remove.textContent = "×";
+            remove.setAttribute("aria-label", `Remove ${option.text}`);
+            remove.addEventListener("click", () => {
+                option.selected = false;
+                renderSelected();
+                renderSuggestions();
+            });
+            chip.append(remove);
+            selected.append(chip);
+        });
+    };
+
+    const renderSuggestions = () => {
+        const query = search.value.trim().toLowerCase();
+        suggestions.replaceChildren();
+        const matches = options.filter((option) =>
+            !option.selected && (!query || option.text.toLowerCase().includes(query))
+        ).slice(0, 8);
+        matches.forEach((option) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "skills-picker-suggestion";
+            button.textContent = option.text;
+            button.addEventListener("click", () => {
+                option.selected = true;
+                search.value = "";
+                renderSelected();
+                renderSuggestions();
+                search.focus();
+            });
+            suggestions.append(button);
+        });
+        suggestions.hidden = matches.length === 0;
+    };
+
+    select.hidden = true;
+    search.addEventListener("input", renderSuggestions);
+    search.addEventListener("focus", renderSuggestions);
+    document.addEventListener("click", (event) => {
+        if (!picker.contains(event.target)) suggestions.hidden = true;
+    });
+    renderSelected();
+});
+</script>
+{% endif %}
 {% endblock %}

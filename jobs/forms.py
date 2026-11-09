@@ -25,19 +25,26 @@ class JobForm(forms.ModelForm):
     )
     skill_weights = forms.CharField(
         required=False,
-        label="Skill weights",
-        help_text="One per line, for example: FastAPI: 60, UI/UX: 40. Weights must total 100.",
-        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "FastAPI: 60\nUI/UX: 40"}),
+        label="Skill importance",
+        help_text="Rate each selected skill from 1–10. SkillBridge converts the ratings into percentages automatically.",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "FastAPI: 9\nUI/UX: 6"}),
     )
     evidence_weights = forms.CharField(
         required=False,
-        label="Evidence weights",
-        help_text="One per line, for example: Projects: 40, Internship: 50, Self-proclaimed skills: 10.",
-        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Projects: 40\nInternship: 50\nSelf-proclaimed skills: 10"}),
+        label="Evidence importance",
+        help_text="Rate each evidence type from 1–10. The result is distributed across the 30% evidence portion.",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Projects: 8\nInternship: 10\nSelf-proclaimed skills: 2"}),
     )
 
     @staticmethod
     def _weight_text(value):
+        values = list((value or {}).values())
+        maximum = max(values, default=0)
+        if maximum > 10:
+            return "\n".join(
+                f"{label}: {round(float(weight) * 10 / maximum, 1):g}"
+                for label, weight in (value or {}).items()
+            )
         return "\n".join(f"{label}: {weight:g}" for label, weight in (value or {}).items())
 
     def __init__(self, *args, **kwargs):
@@ -89,9 +96,18 @@ class JobForm(forms.ModelForm):
                 except ValueError:
                     self.add_error(field_name, "Use one entry per line in the format Skill: weight.")
                     continue
-            if parsed and (any(value < 0 for value in parsed.values()) or round(sum(parsed.values()), 6) != 100):
-                self.add_error(field_name, "Weights must be non-negative and total exactly 100.")
-            cleaned[field_name] = parsed
+            legacy_percentages = parsed and max(parsed.values()) > 10 and round(sum(parsed.values()), 6) == 100
+            if parsed and any(value < 0 or value > 10 for value in parsed.values()) and not legacy_percentages:
+                self.add_error(field_name, "Importance ratings must be between 1 and 10.")
+            if parsed and all(0 <= value <= 10 for value in parsed.values()):
+                total = sum(parsed.values())
+                if total:
+                    cleaned[field_name] = {
+                        label: round(value * 100 / total, 4)
+                        for label, value in parsed.items()
+                    }
+            elif legacy_percentages:
+                cleaned[field_name] = parsed
         selected_skills = cleaned.get("required_skill_choices") or []
         custom_skills = Job.split_skills(cleaned.get("required_skills", ""))
         merged = []

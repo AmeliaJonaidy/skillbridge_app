@@ -85,6 +85,65 @@ th {
     border-radius:8px;
 }
 
+.skills-picker {
+    position:relative;
+}
+.skills-picker-search {
+    width:100%;
+}
+.skills-picker-suggestions {
+    position:absolute;
+    z-index:10;
+    top:calc(100% - 18px);
+    left:0;
+    right:0;
+    display:flex;
+    flex-direction:column;
+    max-height:220px;
+    overflow-y:auto;
+    padding:6px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--paper);
+    box-shadow:var(--shadow);
+}
+.skills-picker-suggestion {
+    padding:9px 10px;
+    border:0;
+    background:transparent;
+    color:var(--ink);
+    text-align:left;
+    cursor:pointer;
+}
+.skills-picker-suggestion:hover {
+    background:var(--soft);
+}
+.skills-picker-selected {
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:8px;
+}
+.skills-picker-chip {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 8px;
+    border-radius:999px;
+    background:var(--soft);
+    color:var(--ink);
+    font-size:12px;
+}
+.skills-picker-remove {
+    padding:0;
+    border:0;
+    background:transparent;
+    color:var(--ink);
+    font-size:16px;
+    line-height:1;
+    cursor:pointer;
+}
+
 .brand-logo-shell {
     display:inline-flex;
     align-items:center;
