@@ -20,7 +20,7 @@
         <form method="post" class="form-grid">
             {% csrf_token %}
             {% for field in form %}
-                <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'preferred_skills' %}span2{% endif %}">
+                <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'preferred_skills' or field.name == 'skill_weights' or field.name == 'evidence_weights' %}span2{% endif %}">
                     {{ field.label }}{{ field }}{{ field.errors }}
                 </label>
             {% endfor %}

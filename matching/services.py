@@ -152,6 +152,37 @@ def _assessment(score):
     return "Early-stage fit"
 
 
+def _configured_weights(values, fallback):
+    cleaned = {
+        _normalise(label): float(weight)
+        for label, weight in (values or {}).items()
+        if str(label).strip() and float(weight) >= 0
+    }
+    return cleaned or fallback
+
+
+def _evidence_score(data, resume_text, configured):
+    weights = _configured_weights(
+        configured,
+        {"projects": 40.0, "internship": 50.0, "self-proclaimed skills": 10.0},
+    )
+    combined = " ".join(str(data.get(key, "")) for key in ("experience", "portfolio", "skills", "certifications"))
+    evidence = {
+        "projects": bool(re.search(r"\b(project|built|developed|implemented|portfolio)\b", combined, re.I)),
+        "internship": bool(re.search(r"\b(intern|internship)\b", combined, re.I)),
+        "self-proclaimed skills": bool(data.get("skills") or resume_text),
+    }
+    earned = sum(weight for label, weight in weights.items() if evidence.get(label, False))
+    return round(earned * 0.3 / 100), {
+        label: {
+            "earned": round(weight * 0.3 / 100) if evidence.get(label, False) else 0,
+            "max": round(weight * 0.3 / 100),
+            "reason": f"{label.title()} evidence {'found' if evidence.get(label, False) else 'not found'} in your profile or resume.",
+        }
+        for label, weight in weights.items()
+    }
+
+
 def calculate_match(candidate, job):
     data = _profile_data(candidate)
     candidate_skills = _profile_skills(candidate)
@@ -168,26 +199,33 @@ def calculate_match(candidate, job):
         }
         return 0, [], [], breakdown, "Insufficient job data"
 
-    required_normalised, required_matched = _coverage(candidate_skills, required_skills, resume_text)
-    preferred_normalised, preferred_matched = _coverage(candidate_skills, preferred_skills, resume_text)
-    required_points = round(60 * len(required_matched) / len(required_normalised)) if required_normalised else 0
-    # Preferred skills are optional. If the recruiter leaves that field blank,
-    # do not penalise the candidate for an omitted optional criterion.
-    preferred_points = round(15 * len(preferred_matched) / len(preferred_normalised)) if preferred_normalised else 15
-    alignment_points = _alignment_points(data, job)
-    experience_points = _experience_points(data, job)
-    evidence_points = _evidence_points(candidate, data)
+    all_skills = _dedupe_skills(required_skills + preferred_skills)
+    skill_weights = _configured_weights(
+        job.skill_weights,
+        {_normalise(skill): 100 / len(all_skills) for skill in all_skills} if all_skills else {},
+    )
+    skill_lookup = {_normalise(skill): skill for skill in all_skills}
+    matched_keys = {
+        key for key in skill_lookup
+        if key in candidate_skills or re.search(rf"(?<![a-z0-9]){re.escape(key)}(?![a-z0-9])", resume_text)
+    }
+    skill_points = round(sum(weight for key, weight in skill_weights.items() if key in matched_keys) * 0.7)
+    skill_reasons = {
+        label: {
+            "earned": round(weight * 0.7) if label in matched_keys else 0,
+            "max": round(weight * 0.7),
+            "reason": f"{skill_lookup.get(label, label.title())} {'was found' if label in matched_keys else 'is missing'} from your profile or resume.",
+        }
+        for label, weight in skill_weights.items()
+    }
+    evidence_points, evidence_reasons = _evidence_score(data, resume_text, job.evidence_weights)
     breakdown = {
-        "required_skills": {"earned": required_points, "max": 60},
-        "preferred_skills": {"earned": preferred_points, "max": 15},
-        "career_alignment": {"earned": alignment_points, "max": 10},
-        "experience_level": {"earned": experience_points, "max": 10},
-        "profile_evidence": {"earned": evidence_points, "max": 5},
+        "skill_match": {"earned": skill_points, "max": 70, "reason": "Weighted recruiter skill coverage.", "details": skill_reasons},
+        "evidence_match": {"earned": evidence_points, "max": 30, "reason": "Weighted evidence from projects, internships, and self-declared skills.", "details": evidence_reasons},
     }
     score = sum(component["earned"] for component in breakdown.values())
-    matched = sorted(required_normalised[key] for key in required_matched)
-    matched.extend(sorted(preferred_normalised[key] for key in preferred_matched if key not in required_matched))
-    missing = sorted(required_normalised[key] for key in set(required_normalised).difference(required_matched))
+    matched = sorted(skill_lookup[key] for key in matched_keys)
+    missing = sorted(skill_lookup[key] for key in skill_lookup if key not in matched_keys)
     return score, matched, missing, breakdown, _assessment(score)
 
 

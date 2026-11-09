@@ -37,7 +37,13 @@
         <h3>How this score is assessed</h3>
         <div class="tag-list">
             {% for label, component in match.score_breakdown.items %}
-                <span class="tag">{{ label|title }}: {{ component.earned }}/{{ component.max }}</span>
+                <div class="match-component">
+                    <span class="tag">{{ label|title }}: {{ component.earned }}/{{ component.max }}</span>
+                    <p class="sub">{{ component.reason }}</p>
+                    {% for detail_label, detail in component.details.items %}
+                        <p class="sub"><strong>{{ detail_label|title }}:</strong> {{ detail.reason }}</p>
+                    {% endfor %}
+                </div>
             {% endfor %}
         </div>
     </div>
