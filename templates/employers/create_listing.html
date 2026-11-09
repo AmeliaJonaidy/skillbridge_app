@@ -31,6 +31,16 @@
                             <div class="skills-picker-selected" data-skills-selected></div>
                             <small class="muted">{{ field.help_text }}</small>
                         </div>
+                    {% elif field.name == 'evidence_rank_order' %}
+                        <div class="evidence-ranker" data-evidence-ranker>
+                            {{ field }}
+                            <p class="muted">{{ field.help_text }}</p>
+                            <ol class="evidence-ranker-list" data-evidence-list>
+                                <li draggable="true" data-evidence="Projects"><span class="drag-handle">☷</span>Projects</li>
+                                <li draggable="true" data-evidence="Internship"><span class="drag-handle">☷</span>Internship</li>
+                                <li draggable="true" data-evidence="Self-proclaimed skills"><span class="drag-handle">☷</span>Self-proclaimed skills</li>
+                            </ol>
+                        </div>
                     {% else %}
                         {{ field }}
                     {% endif %}
@@ -147,6 +157,32 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!picker.contains(event.target)) suggestions.hidden = true;
         });
         renderSelected();
+    });
+    document.querySelectorAll("[data-evidence-ranker]").forEach((ranker) => {
+        const hidden = ranker.querySelector("input[name='evidence_rank_order']");
+        const list = ranker.querySelector("[data-evidence-list]");
+        let dragged;
+        const sync = () => {
+            hidden.value = [...list.querySelectorAll("[data-evidence]")].map((item) => item.dataset.evidence).join(",");
+        };
+        list.addEventListener("dragstart", (event) => {
+            dragged = event.target.closest("[data-evidence]");
+            dragged.classList.add("is-dragging");
+        });
+        list.addEventListener("dragend", () => {
+            dragged?.classList.remove("is-dragging");
+            dragged = null;
+            sync();
+        });
+        list.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            const target = event.target.closest("[data-evidence]");
+            if (target && target !== dragged) {
+                const box = target.getBoundingClientRect();
+                list.insertBefore(dragged, event.clientY < box.top + box.height / 2 ? target : target.nextSibling);
+            }
+        });
+        sync();
     });
 });
 </script>

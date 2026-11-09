@@ -151,6 +151,29 @@ th {
     line-height:1;
     cursor:pointer;
 }
+.evidence-ranker-list {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    max-width:440px;
+    margin:10px 0 0;
+    padding:0;
+    list-style:none;
+}
+.evidence-ranker-list li {
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--paper);
+    cursor:grab;
+}
+.evidence-ranker-list li.is-dragging {
+    opacity:.5;
+}
+.drag-handle {
+    margin-right:8px;
+    color:var(--muted);
+}
 
 .brand-logo-shell {
     display:inline-flex;

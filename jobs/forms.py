@@ -12,6 +12,7 @@ class FreeChoiceMultipleField(forms.MultipleChoiceField):
 
 
 class JobForm(forms.ModelForm):
+    evidence_types = ("Projects", "Internship", "Self-proclaimed skills")
     skill_catalog = list(dict.fromkeys([
         *KNOWN_SKILLS,
         "FastAPI", "Flask", "Spring Boot", "Node.js", "Vue", "Next.js",
@@ -39,17 +40,11 @@ class JobForm(forms.ModelForm):
         widget=forms.SelectMultiple(attrs={"size": 8}),
         help_text="Search and select skills that would be a bonus for this role.",
     )
-    skill_weights = forms.CharField(
+    evidence_rank_order = forms.CharField(
         required=False,
-        label="Skill importance",
-        help_text="Rate each selected skill from 1–10. SkillBridge converts the ratings into percentages automatically.",
-        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "FastAPI: 9\nUI/UX: 6"}),
-    )
-    evidence_weights = forms.CharField(
-        required=False,
-        label="Evidence importance",
-        help_text="Rate each evidence type from 1–10. The result is distributed across the 30% evidence portion.",
-        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Projects: 8\nInternship: 10\nSelf-proclaimed skills: 2"}),
+        label="Rank evidence",
+        help_text="Drag and drop to rank the evidence recruiters value most.",
+        widget=forms.HiddenInput(),
     )
 
     @staticmethod
@@ -77,8 +72,12 @@ class JobForm(forms.ModelForm):
                     *field.choices,
                     *((value, value) for value in existing if value.casefold() not in known),
                 ]
-            self.initial["skill_weights"] = self._weight_text(self.instance.skill_weights)
-            self.initial["evidence_weights"] = self._weight_text(self.instance.evidence_weights)
+            existing_order = sorted(
+                self.instance.evidence_weights or {},
+                key=(self.instance.evidence_weights or {}).get,
+                reverse=True,
+            )
+            self.initial["evidence_rank_order"] = ",".join(existing_order or self.evidence_types)
             self.initial["required_skill_choices"] = self.instance.required_skill_list
             self.initial["preferred_skill_choices"] = self.instance.preferred_skill_list
     class Meta:
@@ -112,30 +111,20 @@ class JobForm(forms.ModelForm):
         salary_max = cleaned.get("salary_max")
         if salary_min is not None and salary_max is not None and salary_min > salary_max:
             self.add_error("salary_max", "Maximum salary must be greater than or equal to minimum salary.")
-        for field_name in ("skill_weights", "evidence_weights"):
-            raw = cleaned.get(field_name, "")
-            parsed = {}
-            for line in raw.replace(",", "\n").splitlines():
-                if not line.strip():
-                    continue
-                try:
-                    label, weight = line.rsplit(":", 1)
-                    parsed[label.strip()] = float(weight.strip())
-                except ValueError:
-                    self.add_error(field_name, "Use one entry per line in the format Skill: weight.")
-                    continue
-            legacy_percentages = parsed and max(parsed.values()) > 10 and round(sum(parsed.values()), 6) == 100
-            if parsed and any(value < 0 or value > 10 for value in parsed.values()) and not legacy_percentages:
-                self.add_error(field_name, "Importance ratings must be between 1 and 10.")
-            if parsed and all(0 <= value <= 10 for value in parsed.values()):
-                total = sum(parsed.values())
-                if total:
-                    cleaned[field_name] = {
-                        label: round(value * 100 / total, 4)
-                        for label, value in parsed.items()
-                    }
-            elif legacy_percentages:
-                cleaned[field_name] = parsed
+        raw_order = [item.strip() for item in cleaned.get("evidence_rank_order", "").split(",") if item.strip()]
+        canonical = {item.casefold(): item for item in self.evidence_types}
+        order = []
+        for item in raw_order:
+            standard = canonical.get(item.casefold())
+            if standard and standard not in order:
+                order.append(standard)
+        order.extend(item for item in self.evidence_types if item not in order)
+        rank_values = list(range(len(order), 0, -1))
+        total = sum(rank_values)
+        cleaned["evidence_weights"] = {
+            item: round(value * 100 / total, 4)
+            for item, value in zip(order, rank_values)
+        }
         canonical = {skill.casefold(): skill for skill in self.skill_catalog}
         for field_name, model_name in (
             ("required_skill_choices", "required_skills"),
