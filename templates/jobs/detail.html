@@ -4,7 +4,7 @@
 
 {% block content %}
 <article class="card job-detail">
-    <p class="eyebrow">{{ job.industry|default:"OPPORTUNITY" }} · {{ job.location|default:"Location not specified" }}</p>
+    <p class="eyebrow">{{ job.get_role_type_display }} · {{ job.industry|default:"OPPORTUNITY" }} · {{ job.location|default:"Location not specified" }}</p>
     <h1>{{ job.title }}</h1>
     <p class="sub">
         {% if job.company.logo_url %}<img class="job-company-logo" src="{{ job.company.logo_url }}" alt="{{ job.company.name }} logo" width="32" height="32">{% endif %}

@@ -1,9 +1,28 @@
 from django import forms
 
+from candidates.resume_parser import KNOWN_SKILLS
+
 from .models import Job
 
 
 class JobForm(forms.ModelForm):
+    skill_choices = [
+        (skill, skill)
+        for skill in [
+            *KNOWN_SKILLS,
+            "FastAPI", "Flask", "Spring Boot", "Node.js", "Vue", "Next.js",
+            "REST APIs", "GraphQL", "Machine learning", "Deep learning",
+            "Statistics", "Data visualisation", "UI/UX", "User research",
+            "Prototyping", "Communication", "Creativity",
+        ]
+    ]
+    required_skill_choices = forms.MultipleChoiceField(
+        required=False,
+        label="Skills needed",
+        choices=skill_choices,
+        widget=forms.SelectMultiple(attrs={"size": 8}),
+        help_text="Select the skills candidates should have. Add custom skills below if needed.",
+    )
     skill_weights = forms.CharField(
         required=False,
         label="Skill weights",
@@ -26,10 +45,12 @@ class JobForm(forms.ModelForm):
         if self.instance and self.instance.pk and not self.is_bound:
             self.initial["skill_weights"] = self._weight_text(self.instance.skill_weights)
             self.initial["evidence_weights"] = self._weight_text(self.instance.evidence_weights)
+            self.initial["required_skill_choices"] = self.instance.required_skill_list
     class Meta:
         model = Job
         fields = [
             "title",
+            "role_type",
             "description",
             "industry",
             "location",
@@ -71,6 +92,16 @@ class JobForm(forms.ModelForm):
             if parsed and (any(value < 0 for value in parsed.values()) or round(sum(parsed.values()), 6) != 100):
                 self.add_error(field_name, "Weights must be non-negative and total exactly 100.")
             cleaned[field_name] = parsed
+        selected_skills = cleaned.get("required_skill_choices") or []
+        custom_skills = Job.split_skills(cleaned.get("required_skills", ""))
+        merged = []
+        seen = set()
+        for skill in [*selected_skills, *custom_skills]:
+            key = skill.casefold()
+            if key not in seen:
+                merged.append(skill)
+                seen.add(key)
+        cleaned["required_skills"] = ", ".join(merged)
         return cleaned
 
 

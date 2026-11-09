@@ -6,6 +6,20 @@ from employers.models import Company
 
 
 class Job(models.Model):
+    ROLE_CHOICES = [
+        ("ai_engineer", "AI engineer"),
+        ("software_engineer", "Software engineer"),
+        ("backend_engineer", "Backend engineer"),
+        ("frontend_engineer", "Frontend engineer"),
+        ("data_scientist", "Data scientist"),
+        ("data_analyst", "Data analyst"),
+        ("data_engineer", "Data engineer"),
+        ("ml_engineer", "Machine learning engineer"),
+        ("ux_ui_designer", "UX / UI designer"),
+        ("product_manager", "Product manager"),
+        ("cybersecurity", "Cybersecurity specialist"),
+        ("other", "Other"),
+    ]
     EMPLOYMENT_TYPES = [
         ("internship", "Internship"),
         ("full_time", "Full-time"),
@@ -44,6 +58,7 @@ class Job(models.Model):
         related_name="created_jobs",
     )
     title = models.CharField(max_length=200)
+    role_type = models.CharField(max_length=40, choices=ROLE_CHOICES, default="other")
     description = models.TextField()
     industry = models.CharField(max_length=100, choices=INDUSTRY_CHOICES, blank=True)
     location = models.CharField(max_length=120, blank=True)
