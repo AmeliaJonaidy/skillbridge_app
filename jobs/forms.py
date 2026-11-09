@@ -6,22 +6,32 @@ from .models import Job
 
 
 class JobForm(forms.ModelForm):
-    skill_choices = [
-        (skill, skill)
-        for skill in [
-            *KNOWN_SKILLS,
-            "FastAPI", "Flask", "Spring Boot", "Node.js", "Vue", "Next.js",
-            "REST APIs", "GraphQL", "Machine learning", "Deep learning",
-            "Statistics", "Data visualisation", "UI/UX", "User research",
-            "Prototyping", "Communication", "Creativity",
-        ]
-    ]
+    skill_catalog = list(dict.fromkeys([
+        *KNOWN_SKILLS,
+        "FastAPI", "Flask", "Spring Boot", "Node.js", "Vue", "Next.js",
+        "REST APIs", "GraphQL", "Machine learning", "Deep learning",
+        "Statistics", "Data visualisation", "UI/UX", "User research",
+        "Prototyping", "Communication", "Creativity", "Management",
+        "Leadership", "Problem solving", "Critical thinking", "Teamwork",
+        "Agile", "Scrum", "Product management", "Business analysis",
+        "Requirements gathering", "Wireframing", "Usability testing",
+        "SEO", "Content writing", "Marketing", "Sales", "Negotiation",
+        "Financial analysis", "Risk management", "Accounting", "Research",
+    ]))
+    skill_choices = [(skill, skill) for skill in skill_catalog]
     required_skill_choices = forms.MultipleChoiceField(
         required=False,
         label="Skills needed",
         choices=skill_choices,
         widget=forms.SelectMultiple(attrs={"size": 8}),
         help_text="Select the skills candidates should have. Add custom skills below if needed.",
+    )
+    preferred_skill_choices = forms.MultipleChoiceField(
+        required=False,
+        label="Preferred skills",
+        choices=skill_choices,
+        widget=forms.SelectMultiple(attrs={"size": 8}),
+        help_text="Search and select skills that would be a bonus for this role.",
     )
     skill_weights = forms.CharField(
         required=False,
@@ -53,6 +63,7 @@ class JobForm(forms.ModelForm):
             self.initial["skill_weights"] = self._weight_text(self.instance.skill_weights)
             self.initial["evidence_weights"] = self._weight_text(self.instance.evidence_weights)
             self.initial["required_skill_choices"] = self.instance.required_skill_list
+            self.initial["preferred_skill_choices"] = self.instance.preferred_skill_list
     class Meta:
         model = Job
         fields = [
@@ -108,16 +119,22 @@ class JobForm(forms.ModelForm):
                     }
             elif legacy_percentages:
                 cleaned[field_name] = parsed
-        selected_skills = cleaned.get("required_skill_choices") or []
-        custom_skills = Job.split_skills(cleaned.get("required_skills", ""))
-        merged = []
-        seen = set()
-        for skill in [*selected_skills, *custom_skills]:
-            key = skill.casefold()
-            if key not in seen:
-                merged.append(skill)
-                seen.add(key)
-        cleaned["required_skills"] = ", ".join(merged)
+        canonical = {skill.casefold(): skill for skill in self.skill_catalog}
+        for field_name, model_name in (
+            ("required_skill_choices", "required_skills"),
+            ("preferred_skill_choices", "preferred_skills"),
+        ):
+            selected_skills = cleaned.get(field_name) or []
+            custom_skills = Job.split_skills(cleaned.get(model_name, ""))
+            merged = []
+            seen = set()
+            for skill in [*selected_skills, *custom_skills]:
+                key = skill.casefold()
+                standard = canonical.get(key, " ".join(word.capitalize() for word in skill.split()))
+                if key not in seen:
+                    merged.append(standard)
+                    seen.add(key)
+            cleaned[model_name] = ", ".join(merged)
         return cleaned
 
 

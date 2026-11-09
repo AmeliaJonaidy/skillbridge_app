@@ -20,12 +20,12 @@
         <form method="post" class="form-grid">
             {% csrf_token %}
             {% for field in form %}
-                <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'required_skill_choices' or field.name == 'preferred_skills' or field.name == 'skill_weights' or field.name == 'evidence_weights' %}span2{% endif %}">
+                <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'required_skill_choices' or field.name == 'preferred_skills' or field.name == 'preferred_skill_choices' or field.name == 'skill_weights' or field.name == 'evidence_weights' %}span2{% endif %}">
                     {{ field.label }}
-                    {% if field.name == 'required_skill_choices' %}
+                    {% if field.name == 'required_skill_choices' or field.name == 'preferred_skill_choices' %}
                         <div class="skills-picker" data-skills-picker>
                             {{ field }}
-                            <input class="skills-picker-search" type="search" placeholder="Search skills, e.g. FastAPI or Java..." autocomplete="off" data-skills-search>
+                            <input class="skills-picker-search" type="search" placeholder="Search skills, e.g. FastAPI, Django, Management..." autocomplete="off" data-skills-search>
                             <div class="skills-picker-suggestions" data-skills-suggestions hidden></div>
                             <div class="skills-picker-selected" data-skills-selected></div>
                             <small class="muted">{{ field.help_text }}</small>
@@ -46,15 +46,14 @@
 {% if company %}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    const picker = document.querySelector("[data-skills-picker]");
-    if (!picker) return;
-    const select = picker.querySelector("select");
-    const search = picker.querySelector("[data-skills-search]");
-    const suggestions = picker.querySelector("[data-skills-suggestions]");
-    const selected = picker.querySelector("[data-skills-selected]");
-    const options = [...select.options];
+    document.querySelectorAll("[data-skills-picker]").forEach((picker) => {
+        const select = picker.querySelector("select");
+        const search = picker.querySelector("[data-skills-search]");
+        const suggestions = picker.querySelector("[data-skills-suggestions]");
+        const selected = picker.querySelector("[data-skills-selected]");
+        const options = [...select.options];
 
-    const renderSelected = () => {
+        const renderSelected = () => {
         selected.replaceChildren();
         [...select.selectedOptions].forEach((option) => {
             const chip = document.createElement("span");
@@ -73,9 +72,9 @@ document.addEventListener("DOMContentLoaded", () => {
             chip.append(remove);
             selected.append(chip);
         });
-    };
+        };
 
-    const renderSuggestions = () => {
+        const renderSuggestions = () => {
         const query = search.value.trim().toLowerCase();
         suggestions.replaceChildren();
         const matches = options.filter((option) =>
@@ -96,15 +95,16 @@ document.addEventListener("DOMContentLoaded", () => {
             suggestions.append(button);
         });
         suggestions.hidden = matches.length === 0;
-    };
+        };
 
-    select.hidden = true;
-    search.addEventListener("input", renderSuggestions);
-    search.addEventListener("focus", renderSuggestions);
-    document.addEventListener("click", (event) => {
-        if (!picker.contains(event.target)) suggestions.hidden = true;
+        select.hidden = true;
+        search.addEventListener("input", renderSuggestions);
+        search.addEventListener("focus", renderSuggestions);
+        document.addEventListener("click", (event) => {
+            if (!picker.contains(event.target)) suggestions.hidden = true;
+        });
+        renderSelected();
     });
-    renderSelected();
 });
 </script>
 {% endif %}
