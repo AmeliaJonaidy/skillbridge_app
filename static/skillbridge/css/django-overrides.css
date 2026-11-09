@@ -88,8 +88,14 @@ th {
 .skills-picker {
     position:relative;
 }
+.skills-picker > select,
+.skills-picker > select[hidden] {
+    display:none !important;
+}
 .skills-picker-search {
     width:100%;
+    display:block;
+    margin:0;
 }
 .skills-picker-suggestions {
     position:absolute;
