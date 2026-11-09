@@ -5,6 +5,12 @@ from candidates.resume_parser import KNOWN_SKILLS
 from .models import Job
 
 
+class FreeChoiceMultipleField(forms.MultipleChoiceField):
+    def validate(self, value):
+        if self.required and not value:
+            raise forms.ValidationError(self.error_messages["required"], code="required")
+
+
 class JobForm(forms.ModelForm):
     skill_catalog = list(dict.fromkeys([
         *KNOWN_SKILLS,
@@ -19,14 +25,14 @@ class JobForm(forms.ModelForm):
         "Financial analysis", "Risk management", "Accounting", "Research",
     ]))
     skill_choices = [(skill, skill) for skill in skill_catalog]
-    required_skill_choices = forms.MultipleChoiceField(
+    required_skill_choices = FreeChoiceMultipleField(
         required=False,
         label="Skills needed",
         choices=skill_choices,
         widget=forms.SelectMultiple(attrs={"size": 8}),
         help_text="Select the skills candidates should have. Add custom skills below if needed.",
     )
-    preferred_skill_choices = forms.MultipleChoiceField(
+    preferred_skill_choices = FreeChoiceMultipleField(
         required=False,
         label="Preferred skills",
         choices=skill_choices,
@@ -60,6 +66,17 @@ class JobForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk and not self.is_bound:
+            for field_name, model_name in (
+                ("required_skill_choices", "required_skills"),
+                ("preferred_skill_choices", "preferred_skills"),
+            ):
+                existing = self.instance.split_skills(getattr(self.instance, model_name, ""))
+                field = self.fields[field_name]
+                known = {value.casefold() for value, _ in field.choices}
+                field.choices = [
+                    *field.choices,
+                    *((value, value) for value in existing if value.casefold() not in known),
+                ]
             self.initial["skill_weights"] = self._weight_text(self.instance.skill_weights)
             self.initial["evidence_weights"] = self._weight_text(self.instance.evidence_weights)
             self.initial["required_skill_choices"] = self.instance.required_skill_list

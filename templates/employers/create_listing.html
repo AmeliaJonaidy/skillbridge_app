@@ -20,6 +20,7 @@
         <form method="post" class="form-grid">
             {% csrf_token %}
             {% for field in form %}
+                {% if field.name != 'required_skills' and field.name != 'preferred_skills' %}
                 <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'required_skill_choices' or field.name == 'preferred_skills' or field.name == 'preferred_skill_choices' or field.name == 'skill_weights' or field.name == 'evidence_weights' %}span2{% endif %}">
                     {{ field.label }}
                     {% if field.name == 'required_skill_choices' or field.name == 'preferred_skill_choices' %}
@@ -35,6 +36,7 @@
                     {% endif %}
                     {{ field.errors }}
                 </label>
+                {% endif %}
             {% endfor %}
             <div class="static-page-actions span2">
                 <button class="primary" type="submit">{% if editing %}Save changes{% else %}Publish listing{% endif %}</button>
@@ -77,6 +79,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const renderSuggestions = () => {
         const query = search.value.trim().toLowerCase();
         suggestions.replaceChildren();
+        if (!query) {
+            suggestions.hidden = true;
+            return;
+        }
         const matches = options.filter((option) =>
             !option.selected && (!query || option.text.toLowerCase().includes(query))
         ).slice(0, 8);
@@ -94,12 +100,49 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             suggestions.append(button);
         });
-        suggestions.hidden = matches.length === 0;
+        if (matches.length === 0) {
+            const add = document.createElement("button");
+            add.type = "button";
+            add.className = "skills-picker-suggestion";
+            add.textContent = `Add "${search.value.trim()}"`;
+            add.addEventListener("click", () => {
+                const value = search.value.trim();
+                const option = new Option(value, value, false, true);
+                select.add(option);
+                options.push(option);
+                search.value = "";
+                renderSelected();
+                renderSuggestions();
+                search.focus();
+            });
+            suggestions.append(add);
+        }
+        suggestions.hidden = false;
         };
 
         select.hidden = true;
         search.addEventListener("input", renderSuggestions);
         search.addEventListener("focus", renderSuggestions);
+        search.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && search.value.trim()) {
+                event.preventDefault();
+                const exact = options.find((option) => option.text.toLowerCase() === search.value.trim().toLowerCase());
+                if (exact) {
+                    exact.selected = true;
+                    search.value = "";
+                    renderSelected();
+                    renderSuggestions();
+                } else {
+                    const value = search.value.trim();
+                    const option = new Option(value, value, false, true);
+                    select.add(option);
+                    options.push(option);
+                    search.value = "";
+                    renderSelected();
+                    renderSuggestions();
+                }
+            }
+        });
         document.addEventListener("click", (event) => {
             if (!picker.contains(event.target)) suggestions.hidden = true;
         });
