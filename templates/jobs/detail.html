@@ -30,16 +30,18 @@
         <div class="section-heading">
             <div>
                 <p class="eyebrow">Your readiness</p>
-                <h2>{{ match.score }}% fit score</h2>
+                <h2>{{ match.score }}% skill compatibility</h2>
             </div>
             <div>{% if match.assessment %}<span class="pill">{{ match.assessment }}</span>{% endif %}{% if application %}<span class="pill progress-green">{{ application.get_status_display }}</span>{% endif %}</div>
         </div>
         <p class="sub">Matched skills: {{ match.matched_skills|join:", "|default:"None yet" }}</p>
         <p class="sub">Skills to develop: {{ match.missing_skills|join:", "|default:"None" }}</p>
+        <p class="sub"><strong>AI compatibility:</strong> {{ match.score_breakdown.ai_match.earned }}%</p>
         {% if match.missing_skills %}<a class="button small" href="{% url 'candidate_learning' %}?job={{ job.id }}">See certifications to bridge this gap →</a>{% endif %}
         <h3>How this score is assessed</h3>
         <div class="tag-list">
             {% for label, component in match.score_breakdown.items %}
+                {% if label != "ai_match" %}
                 <div class="match-component">
                     <span class="tag">{{ label|title }}: {{ component.earned }}/{{ component.max }}</span>
                     <p class="sub">{{ component.reason }}</p>
@@ -47,7 +49,16 @@
                         <p class="sub"><strong>{{ detail_label|title }}:</strong> {{ detail.reason }}</p>
                     {% endfor %}
                 </div>
+                {% endif %}
             {% endfor %}
+            {% with ai_match=match.score_breakdown.ai_match %}
+                {% if ai_match %}
+                <div class="match-component">
+                    <span class="tag">AI compatibility: {{ ai_match.earned }}%</span>
+                    <p class="sub">{{ ai_match.reason }}</p>
+                </div>
+                {% endif %}
+            {% endwith %}
         </div>
     </div>
     {% else %}

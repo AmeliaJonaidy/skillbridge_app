@@ -1,71 +1,71 @@
-"""Outcome-calibrated compatibility scoring.
+"""Dataset-trained AI compatibility scoring."""
 
-The weighted matcher remains the source of truth until enough real application
-outcomes exist to train a model. This keeps early scores useful and explainable.
-"""
-
+import csv
 from functools import lru_cache
+from pathlib import Path
 
-from django.apps import apps
-
-MIN_TRAINING_EXAMPLES = 10
-
-
-def _features(breakdown):
-    skill = breakdown.get("skill_match", {})
-    evidence = breakdown.get("evidence_match", {})
-    return [
-        float(skill.get("earned", 0)) / max(float(skill.get("max", 1)), 1),
-        float(evidence.get("earned", 0)) / max(float(evidence.get("max", 1)), 1),
-    ]
-
-
-def _label(status):
-    return 100.0 if status in {"shortlisted", "interview", "offer"} else 0.0
+DATASET_PATH = Path(__file__).resolve().parents[1] / "data" / "job_resume_fit.csv"
+MAX_DATASET_ROWS = 20000
 
 
 @lru_cache(maxsize=1)
-def _trained_model(example_count):
-    if example_count < MIN_TRAINING_EXAMPLES:
-        return None
-    try:
-        from sklearn.ensemble import RandomForestRegressor
-    except ImportError:
-        return None
+def _trained_model(dataset_mtime):
+   try:
+       from sklearn.feature_extraction.text import TfidfVectorizer
+       from sklearn.linear_model import Ridge
+       from sklearn.pipeline import make_pipeline
+   except ImportError:
+       return None
 
-    Application = apps.get_model("applications", "JobApplication")
-    examples = list(
-        Application.objects.exclude(match_breakdown={})
-        .exclude(status="withdrawn")
-        .values("match_breakdown", "status")[:5000]
-    )
-    if len(examples) < MIN_TRAINING_EXAMPLES:
-        return None
-    model = RandomForestRegressor(
-        n_estimators=50,
-        max_depth=4,
-        random_state=42,
-        min_samples_leaf=2,
-    )
-    model.fit(
-        [_features(item["match_breakdown"]) for item in examples],
-        [_label(item["status"]) for item in examples],
-    )
-    return model
+   texts = []
+   labels = []
+   try:
+       with DATASET_PATH.open(newline="", encoding="utf-8") as dataset:
+           for row in csv.DictReader(dataset):
+               target = row.get("ai_match_score", "").strip()
+               resume = row.get("resume_text", "").strip()
+               job = row.get("job_text", "").strip()
+               if not target or not resume or not job:
+                   continue
+               texts.append(f"resume: {resume} job: {job}")
+               labels.append(float(target))
+               if len(texts) >= MAX_DATASET_ROWS:
+                   break
+   except (OSError, UnicodeError, ValueError):
+       return None
+   if len(texts) < 10:
+       return None
+   model = make_pipeline(
+       TfidfVectorizer(
+           max_features=30000,
+           ngram_range=(1, 2),
+           min_df=2,
+           sublinear_tf=True,
+       ),
+       Ridge(alpha=2.0),
+   )
+   model.fit(texts, labels)
+   return model, len(texts)
 
 
-def predict_compatibility(breakdown, fallback_score):
-    """Return an ML-calibrated score and explanation when data is sufficient."""
-    Application = apps.get_model("applications", "JobApplication")
-    example_count = Application.objects.exclude(match_breakdown={}).exclude(status="withdrawn").count()
-    model = _trained_model(example_count)
-    if model is None:
-        return fallback_score, {
-            "mode": "weighted",
-            "reason": "Using the explainable weighted score until at least 10 real application outcomes are available.",
-        }
-    prediction = max(0, min(100, round(float(model.predict([_features(breakdown)])[0]))))
-    return prediction, {
-        "mode": "ml",
-        "reason": f"Calibrated from {example_count} recorded application outcomes.",
-    }
+def predict_ai_compatibility(resume_text, job_text, fallback_score):
+   """Predict the dataset-trained AI score, falling back to the skill score."""
+   try:
+       dataset_mtime = DATASET_PATH.stat().st_mtime_ns
+   except OSError:
+       dataset_mtime = 0
+   trained = _trained_model(dataset_mtime)
+   if trained is None:
+       return fallback_score, {
+           "mode": "skill_fallback",
+           "reason": "The dataset-trained AI model is unavailable, so the transparent skill score is shown.",
+       }
+   model, example_count = trained
+   prediction = max(
+       0,
+       min(100, round(float(model.predict([f"resume: {resume_text} job: {job_text}"])[0]))),
+   )
+   return prediction, {
+       "mode": "dataset",
+       "reason": f"Trained from {example_count:,} dataset rows using resume and job text.",
+   }
