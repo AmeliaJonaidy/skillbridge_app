@@ -14,6 +14,9 @@ from applications.forms import ApplicationStatusForm, InterviewForm
 from applications.models import Interview, JobApplication
 from jobs.forms import JobForm
 from jobs.models import Job
+from jobs.reference_catalog import suggest_skills_for_title
+from matching.ml_model import predict_suitability
+from matching.services import calculate_overall_suitability
 
 from .forms import CompanyForm, CompanyLookupForm
 from .models import Company, RecruiterProfile
@@ -76,17 +79,80 @@ def listings(request):
 @recruiter_required
 def create_listing(request):
     recruiter = _recruiter(request)
-    form = JobForm(request.POST or None)
-    response = _publish_listing(request, recruiter, form)
+    action = request.POST.get("action", "") if request.method == "POST" else ""
+    reference_kind, _, reference_index = action.partition(":")
+    reference_action = reference_kind in {"suggest_reference", "use_reference_required", "use_reference_preferred"}
+    form_data = request.POST or None
+    suggestions = []
+
+    if reference_action:
+        profile = getattr(request.user, "profile", None)
+        if not profile or not profile.is_pro:
+            messages.error(request, "Pro access is required for reference suggestions.")
+        else:
+            title = request.POST.get("title", "").strip()
+            if title:
+                try:
+                    suggestions = suggest_skills_for_title(title)
+                except (FileNotFoundError, OSError, ValueError) as error:
+                    messages.error(request, f"Reference catalogue unavailable: {error}")
+        if suggestions and reference_kind in {"use_reference_required", "use_reference_preferred"}:
+            try:
+                suggestion = suggestions[int(reference_index)]
+            except (IndexError, TypeError, ValueError):
+                messages.error(request, "That reference match is no longer available.")
+            else:
+                form_data = request.POST.copy()
+                field_name = "required_skills" if reference_kind.endswith("required") else "preferred_skills"
+                form_data[field_name] = ", ".join(suggestion["skills"])
+
+    form = JobForm(form_data)
+    response = None if reference_action else _publish_listing(request, recruiter, form)
     if response:
         return response
-    return render(request, "employers/create_listing.html", _context(request, form=form, company=recruiter.company))
+    return render(
+        request,
+        "employers/create_listing.html",
+        _context(request, form=form, company=recruiter.company, suggestions=suggestions),
+    )
+
+
+@recruiter_required
+def job_detail(request, job_id):
+    job = get_object_or_404(
+        Job.objects.select_related("company"),
+        pk=job_id,
+        created_by=request.user,
+    )
+    return render(request, "employers/job_detail.html", _context(request, job=job))
+
+
+@recruiter_required
+def edit_listing(request, job_id):
+    job = get_object_or_404(Job, pk=job_id, created_by=request.user)
+    form = JobForm(request.POST or None, instance=job)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Job listing updated.")
+        return redirect("recruiter_job_detail", job_id=job.id)
+    return render(request, "employers/edit_listing.html", _context(request, form=form, job=job))
 
 
 @recruiter_required
 def applicants(request):
+    profile = getattr(request.user, "profile", None)
+    has_pro = profile.is_pro if profile else False
     jobs = Job.objects.filter(created_by=request.user)
     applications = JobApplication.objects.filter(job__in=jobs).select_related("candidate", "job")
+    for application in applications:
+        application.status_form = ApplicationStatusForm(instance=application)
+    if has_pro:
+        for application in applications:
+            application.ml_prediction = predict_suitability(application.candidate, application.job)
+            application.overall_score = calculate_overall_suitability(
+                application.match_score,
+                application.ml_prediction["score"],
+            )
     job_id = request.GET.get("job")
     status = request.GET.get("status")
     query = request.GET.get("q", "").strip()
@@ -120,11 +186,13 @@ def applicants(request):
             return redirect("recruiter_applicants")
     else:
         status_form = ApplicationStatusForm()
-    return render(request, "employers/applicants.html", _context(request, applications=applications, jobs=jobs, status_form=status_form))
+    return render(request, "employers/applicants.html", _context(request, applications=applications, jobs=jobs, status_form=status_form, has_pro=has_pro))
 
 
 @recruiter_required
 def applicant_detail(request, application_id):
+    profile = getattr(request.user, "profile", None)
+    has_pro = profile.is_pro if profile else False
     application = get_object_or_404(
         JobApplication.objects.select_related("candidate", "job__company"),
         pk=application_id,
@@ -132,6 +200,11 @@ def applicant_detail(request, application_id):
     )
     candidate_profile = getattr(application.candidate, "candidate_profile", None)
     profile = getattr(application.candidate, "profile", None)
+    ml_prediction = predict_suitability(application.candidate, application.job) if has_pro else None
+    overall_score = calculate_overall_suitability(
+        application.match_score,
+        ml_prediction["score"] if ml_prediction else None,
+    )
     status_form = ApplicationStatusForm(request.POST or None, instance=application)
     if request.method == "POST" and status_form.is_valid():
         status_form.save()
@@ -152,6 +225,9 @@ def applicant_detail(request, application_id):
             candidate_profile=candidate_profile,
             profile=profile,
             status_form=status_form,
+            has_pro=has_pro,
+            ml_prediction=ml_prediction,
+            overall_score=overall_score,
         ),
     )
 
@@ -283,6 +359,16 @@ def dashboard(request):
     jobs = Job.objects.filter(created_by=request.user)
     applications = JobApplication.objects.filter(job__in=jobs)
     interviews = Interview.objects.filter(application__in=applications)
+    has_pro = getattr(request.user, "profile", None)
+    has_pro = has_pro.is_pro if has_pro else False
+    recent_applications = applications.select_related("candidate", "job")[:5]
+    if has_pro:
+        for application in recent_applications:
+            ml_prediction = predict_suitability(application.candidate, application.job)
+            application.overall_score = calculate_overall_suitability(
+                application.match_score,
+                ml_prediction["score"],
+            )
     now = timezone.now()
     return render(
         request,
@@ -293,7 +379,8 @@ def dashboard(request):
             applicant_count=applications.count(),
             shortlisted_count=applications.filter(status="shortlisted").count(),
             interview_count=interviews.filter(scheduled_start__gte=now).count(),
-            recent_applications=applications.select_related("candidate", "job")[:5],
+            recent_applications=recent_applications,
+            has_pro=has_pro,
             upcoming_interviews=interviews.filter(scheduled_start__gte=now).select_related("application__job")[:5],
             pending_reschedules=interviews.filter(reschedule_status="pending").select_related("application__candidate", "application__job"),
         ),

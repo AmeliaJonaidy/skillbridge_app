@@ -11,7 +11,7 @@
     <a class="primary button" href="{% url 'recruiter_create_listing' %}">Create listing →</a>
 </div>
 
-{% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
+
 
 <div class="card table-wrap">
     <table>
@@ -19,7 +19,7 @@
         <tbody>
             {% for job in jobs %}
                 <tr>
-                    <td>{{ job.title }}</td>
+                    <td><a class="job-listing-link" href="{% url 'recruiter_job_detail' job.id %}">{{ job.title }}</a></td>
                     <td>{{ job.applications.count }}</td>
                     <td>{{ job.get_employment_type_display }}</td>
                     <td><span class="pill {% if job.status == 'open' %}progress-green{% endif %}">{{ job.get_status_display }}</span></td>

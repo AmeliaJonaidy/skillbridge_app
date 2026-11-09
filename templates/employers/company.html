@@ -10,9 +10,9 @@
     </div>
 </div>
 
-{% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
 
-<form method="post" class="card account-card">
+
+<form method="post" class="card account-card company-card">
     {% csrf_token %}
     <div class="form-grid">
         {% for field in form %}
@@ -22,7 +22,7 @@
     <div class="static-page-actions"><button class="primary" type="submit">Save company profile</button></div>
 </form>
 
-<section class="card account-card">
+<section class="card account-card company-card">
     <h2>Find a company</h2>
     <p class="sub">Search your saved companies or use a LinkedIn company URL. LinkedIn lookup is enabled when the server has an approved API token.</p>
     <form method="get" class="filterbar">

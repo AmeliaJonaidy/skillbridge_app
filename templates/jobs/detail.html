@@ -27,18 +27,29 @@
         <div class="section-heading">
             <div>
                 <p class="eyebrow">YOUR READINESS</p>
-                <h2>{{ match.score }}% fit score</h2>
+                <h2><span class="match-badge match-badge-with-help {% if overall_score <= 40 %}match-badge-low{% elif overall_score <= 70 %}match-badge-medium{% else %}match-badge-high{% endif %}">Overall suitability: {{ overall_score }}%<span class="match-help" role="tooltip">70% comes from your explainable Skill Match and 30% from the historical ML suitability signal.</span></span></h2>
             </div>
             <div>{% if match.assessment %}<span class="pill">{{ match.assessment }}</span>{% endif %}{% if application %}<span class="pill progress-green">{{ application.get_status_display }}</span>{% endif %}</div>
         </div>
-        <p class="sub">Matched skills: {{ match.matched_skills|join:", "|default:"None yet" }}</p>
-        <p class="sub">Skills to develop: {{ match.missing_skills|join:", "|default:"None" }}</p>
+        <div class="skill-match-explanation">
+            <p><strong>Matched skills:</strong> {{ match.matched_skills|join:", "|default:"None yet" }}</p>
+            <p><strong>Missing skills:</strong> {{ match.missing_skills|join:", "|default:"None" }}</p>
+            <p><strong>Readiness:</strong> {{ match.assessment }}{% if match.assessment == "Early-stage fit" %} — you are still building the evidence or skills needed for this role.{% endif %}</p>
+        </div>
         {% if match.missing_skills %}<a class="button small" href="{% url 'candidate_learning' %}?job={{ job.id }}">See certifications to bridge this gap →</a>{% endif %}
-        <h3>How this score is assessed</h3>
-        <div class="tag-list">
+        <h3>How your overall suitability is assessed</h3>
+        <p class="muted">Skill Match contributes 70%; the historical ML suitability signal contributes 30%. This is guidance, not an automatic hiring decision.</p>
+        <div class="score-breakdown">
             {% for label, component in match.score_breakdown.items %}
-                <span class="tag">{{ label|title }}: {{ component.earned }}/{{ component.max }}</span>
+                <div class="score-breakdown-item">
+                    <span>{% if label == "required_skills" %}Required Skills{% elif label == "preferred_skills" %}Preferred Skills{% elif label == "career_alignment" %}Career Alignment{% elif label == "experience_level" %}Experience Level{% elif label == "profile_evidence" %}Profile Evidence{% else %}{{ label|title }}{% endif %}</span>
+                    <strong>{{ component.earned }}/{{ component.max }} points</strong>
+                </div>
             {% endfor %}
+        </div>
+        <div class="score-breakdown">
+            <div class="score-breakdown-item"><span>Skill Match (70%)</span><strong>{{ match.score }}%</strong></div>
+            <div class="score-breakdown-item"><span>ML suitability signal (30%)</span><strong>{{ ml_prediction.score }}%</strong></div>
         </div>
     </div>
     {% else %}
@@ -52,10 +63,6 @@
         </div>
         <p class="sub">Pro compares your resume with this job to show matched skills, missing skills, and how ready you are to apply.</p>
     </div>
-    {% endif %}
-
-    {% if messages %}
-        {% for message in messages %}<p class="sub">{{ message }}</p>{% endfor %}
     {% endif %}
 
     <div class="static-page-actions job-detail-actions">
@@ -79,6 +86,15 @@
     {% else %}
         <div class="divider"></div>
         <h2>Apply for this job</h2>
+        {% if tailored_draft %}
+            <div class="card profile-message">
+                <strong>{% if tailored_draft.approved_at %}Your tailored resume is approved.{% else %}Your tailored resume needs review.{% endif %}</strong>
+                <p class="sub">{% if tailored_draft.approved_at %}This approved draft will be submitted with your application.{% else %}Review and approve this draft before it can be submitted.{% endif %}</p>
+                <a class="button small" href="{% url 'resume_detail' tailored_draft.id %}">Review or edit draft →</a>
+            </div>
+        {% else %}
+            <p class="sub">SkillBridge will generate a job-specific draft from your current profile. You must review and approve it before applying.</p>
+        {% endif %}
         {% if profile_missing_fields %}
             <div class="card profile-message">
                 <strong>Complete your essential profile first.</strong>

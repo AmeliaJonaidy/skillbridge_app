@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import authenticate, login, logout
@@ -260,11 +261,29 @@ def plans(request):
             "role": profile.role,
             "profile": profile,
             "has_pro": profile.is_pro,
+            "trial_available": not profile.trial_started_at and not profile.is_pro,
             "payments": Payment.objects.filter(user=request.user)[:5],
             "stripe_enabled": settings.STRIPE_SECRET_KEY.startswith("sk_test_"),
             "pro_plan_price": f"{settings.PRO_PLAN_CURRENCY.upper()} {settings.PRO_PLAN_AMOUNT_CENTS / 100:.2f}",
         },
     )
+
+
+@login_required
+@require_POST
+def start_pro_trial(request):
+    profile = _profile(request)
+    if profile.is_pro:
+        messages.info(request, "Your Pro access is already active.")
+    elif profile.trial_started_at:
+        messages.error(request, "Your 7-day Pro trial has already been used.")
+    else:
+        profile.plan = "pro"
+        profile.trial_started_at = timezone.now()
+        profile.plan_expires_at = profile.trial_started_at + timedelta(days=7)
+        profile.save(update_fields=["plan", "trial_started_at", "plan_expires_at"])
+        messages.success(request, "Your 7-day Pro trial is now active.")
+    return redirect("plans")
 
 
 @login_required
@@ -314,6 +333,12 @@ def cancel_pro(request):
         None,
     )
     if not payment:
+        if profile.trial_started_at:
+            profile.plan = "free"
+            profile.plan_expires_at = None
+            profile.save(update_fields=["plan", "plan_expires_at"])
+            messages.success(request, "Your Pro trial has been cancelled. Your account is now on SkillBridge Free.")
+            return redirect("plans")
         messages.error(request, "No active Stripe subscription was found for this account.")
         return redirect("plans")
 

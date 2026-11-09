@@ -8,7 +8,15 @@ from django.urls import reverse
 
 from accounts.models import UserProfile
 from accounts.notification_helpers import notify
-from accounts.choices import CAREER_INTEREST_CHOICES, PHONE_COUNTRY_CODE_CHOICES
+from accounts.choices import (
+    CAREER_CHOICES,
+    CAREER_INTEREST_CHOICES,
+    CAREER_STAGE_CHOICES,
+    EDUCATION_CHOICES,
+    INSTITUTION_CHOICES,
+    PHONE_COUNTRY_CODE_CHOICES,
+    SPECIALISATION_CHOICES,
+)
 from accounts.calendar import build_month_calendar
 from accounts.decorators import candidate_required
 from accounts.notification_helpers import notify
@@ -16,13 +24,18 @@ from applications.forms import CandidateInterviewForm
 from applications.models import Interview, JobApplication, SavedJob
 from jobs.forms import JobFilterForm
 from jobs.models import Job
-from matching.services import get_or_update_match, recommend_certifications_for_gap
+from matching.services import calculate_overall_suitability, get_or_update_match, recommend_certifications_for_gap
+from matching.ml_model import predict_suitability
 
 from .forms import CandidateProfileForm
 from .career_paths import CAREER_PATHS, career_progress
 from .models import CandidateMilestone, Certification
 from .resume_parser import extract_resume_text, review_resume
-from .services import autofill_from_resume, sync_candidate_profile
+from .services import (
+    autofill_from_resume,
+    merge_completed_certifications,
+    sync_candidate_profile,
+)
 
 CERTIFICATE_FILE_EXTENSIONS = {".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"}
 MAX_CERTIFICATE_FILE_SIZE = 10 * 1024 * 1024
@@ -105,7 +118,7 @@ def _context(request, **extra):
 
 
 def _profile_initial(request, profile):
-    data = profile.profile_data or {}
+    data = merge_completed_certifications(request.user, profile.profile_data)
     stored_phone = str(data.get("phone", "") or "").strip()
     phone_country_code = data.get("phone_country_code", "") or "+65"
     phone_number = stored_phone
@@ -195,11 +208,19 @@ def jobs(request):
             job_queryset = job_queryset.filter(industry__icontains=industry)
 
     saved_ids = set(SavedJob.objects.filter(candidate=request.user).values_list("job_id", flat=True))
+    has_pro = _current_profile(request).is_pro
     job_cards = []
     for job in job_queryset:
+        match = get_or_update_match(request.user, job) if has_pro else None
+        ml_prediction = predict_suitability(request.user, job) if has_pro else None
         job_cards.append({
             "job": job,
-            "match": get_or_update_match(request.user, job),
+            "match": match,
+            "ml_prediction": ml_prediction,
+            "overall_score": calculate_overall_suitability(
+                match.score if match else None,
+                ml_prediction["score"] if ml_prediction else None,
+            ),
             "is_saved": job.id in saved_ids,
         })
     return render(request, "candidates/jobs.html", _context(request, form=form, job_cards=job_cards))
@@ -208,6 +229,10 @@ def jobs(request):
 @candidate_required
 def profile(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user, defaults={"role": "candidate"})
+    merged_profile_data = merge_completed_certifications(request.user, profile.profile_data)
+    if merged_profile_data != profile.profile_data:
+        profile.profile_data = merged_profile_data
+        profile.save(update_fields=["profile_data"])
     initial = _profile_initial(request, profile)
     form = CandidateProfileForm(request.POST or None, request.FILES or None, initial=initial)
     if request.method == "POST" and form.is_valid():
@@ -253,25 +278,71 @@ def profile(request):
         profile.save(update_fields=changed_fields)
         sync_candidate_profile(request.user, data)
         messages.success(request, "Your profile has been updated.")
-        profile.refresh_from_db()
-        form = CandidateProfileForm(initial=_profile_initial(request, profile))
+        return redirect("candidate_profile")
     return render(request, "candidates/profile.html", {**_context(request), "form": form, "profile": profile, "completion_percent": _completion_percent(profile)})
 
 
 @candidate_required
 def resume(request):
-    profile = getattr(request.user, "profile", None)
-    data = (profile.profile_data if profile else {}) or {}
+    profile = _current_profile(request)
+    data = merge_completed_certifications(
+        request.user,
+        profile.profile_data if profile else {},
+    )
+    resume_data = dict(data)
+    resume_data["email"] = request.user.email
+    resume_data["career_label"] = dict(CAREER_INTEREST_CHOICES).get(
+        data.get("career"),
+        dict(CAREER_CHOICES).get(data.get("career"), data.get("career", "")),
+    )
+    resume_data["specialisation_label"] = dict(SPECIALISATION_CHOICES).get(
+        data.get("specialisation"),
+        data.get("specialisation", ""),
+    )
+    resume_data["education_label"] = dict(EDUCATION_CHOICES).get(
+        data.get("education"),
+        data.get("education", ""),
+    )
+    resume_data["institution_label"] = dict(INSTITUTION_CHOICES).get(
+        data.get("institution"),
+        data.get("institution", ""),
+    )
+    resume_data["career_stage_label"] = dict(CAREER_STAGE_CHOICES).get(
+        data.get("career_stage"),
+        data.get("career_stage", ""),
+    )
+    resume_data["career_interest_labels"] = _career_interest_labels(
+        _selected_career_interests(data)
+    )
+    certificate_entries = list(resume_data.get("completed_career_certificates", []))
+    existing_certifications = str(resume_data.get("certifications", "") or "").strip()
+    certification_lines = [line.strip() for line in existing_certifications.splitlines() if line.strip()]
+    for certificate in certificate_entries:
+        title = certificate.get("title", "").strip()
+        certificate_id = certificate.get("certificate_id", "").strip()
+        if not title:
+            continue
+        line = f"{title} (Certificate ID: {certificate_id})" if certificate_id else title
+        if line not in certification_lines:
+            certification_lines.append(line)
+    resume_data["certifications"] = "\n".join(certification_lines)
     feedback = None
     if profile and profile.resume:
         with profile.resume.open("rb") as resume_file:
             feedback = review_resume(extract_resume_text(resume_file))
-    return render(request, "candidates/resume.html", _context(request, profile=profile, profile_data=data, feedback=feedback))
+    return render(request, "candidates/resume.html", _context(request, profile=profile, profile_data=resume_data, feedback=feedback))
 
 
 @candidate_required
 def applications(request):
     application_list = JobApplication.objects.filter(candidate=request.user).select_related("job__company")
+    has_pro = _current_profile(request).is_pro
+    for application in application_list:
+        ml_prediction = predict_suitability(request.user, application.job) if has_pro else None
+        application.overall_score = calculate_overall_suitability(
+            application.match_score,
+            ml_prediction["score"] if ml_prediction else None,
+        )
     return render(request, "candidates/applications.html", _context(request, applications=application_list))
 
 
@@ -440,8 +511,24 @@ def learning(request):
                 ]
                 completed_certificates.append(certificate_record)
                 data["completed_career_certificates"] = completed_certificates
+                certification_lines = [
+                    line.strip()
+                    for line in str(data.get("certifications", "") or "").splitlines()
+                    if line.strip()
+                ]
+                certification_label = course_title
+                if certificate_id:
+                    certification_label = f"{course_title} (Certificate ID: {certificate_id})"
+                certification_lines = [
+                    line for line in certification_lines
+                    if not line.startswith(f"{course_title} (Certificate ID:")
+                    and line != course_title
+                ]
+                certification_lines.append(certification_label)
+                data["certifications"] = "\n".join(certification_lines)
                 profile.profile_data = data
                 profile.save(update_fields=["profile_data"])
+                sync_candidate_profile(request.user, data)
                 messages.success(request, f"{course_title} was validated and marked completed. Your readiness bars have been updated.")
             return redirect(request.get_full_path())
 
@@ -462,6 +549,26 @@ def learning(request):
         if evidence_file:
             update_fields.append("evidence_file")
         milestone.save(update_fields=update_fields)
+        if next_status == "completed":
+            data = dict(profile.profile_data or {})
+            certification_label = certification.title
+            if milestone.certificate_id:
+                certification_label = f"{certification.title} (Certificate ID: {milestone.certificate_id})"
+            certification_lines = [
+                line.strip()
+                for line in str(data.get("certifications", "") or "").splitlines()
+                if line.strip()
+            ]
+            certification_lines = [
+                line for line in certification_lines
+                if line != certification.title
+                and not line.startswith(f"{certification.title} (Certificate ID:")
+            ]
+            certification_lines.append(certification_label)
+            data["certifications"] = "\n".join(certification_lines)
+            profile.profile_data = data
+            profile.save(update_fields=["profile_data"])
+            sync_candidate_profile(request.user, data)
         redirect_url = reverse("candidate_learning")
         if job_id:
             redirect_url = f"{redirect_url}?job={job_id}"
@@ -493,7 +600,22 @@ def saved_jobs(request):
             saved.delete()
         return redirect("candidate_saved_jobs")
     saved = SavedJob.objects.filter(candidate=request.user).select_related("job__company")
-    return render(request, "candidates/jobs.html", _context(request, form=JobFilterForm(), job_cards=[{"job": item.job, "match": get_or_update_match(request.user, item.job), "is_saved": True} for item in saved], saved_page=True))
+    has_pro = _current_profile(request).is_pro
+    job_cards = []
+    for item in saved:
+        match = get_or_update_match(request.user, item.job) if has_pro else None
+        ml_prediction = predict_suitability(request.user, item.job) if has_pro else None
+        job_cards.append({
+            "job": item.job,
+            "match": match,
+            "ml_prediction": ml_prediction,
+            "overall_score": calculate_overall_suitability(
+                match.score if match else None,
+                ml_prediction["score"] if ml_prediction else None,
+            ),
+            "is_saved": True,
+        })
+    return render(request, "candidates/jobs.html", _context(request, form=JobFilterForm(), job_cards=job_cards, saved_page=True))
 
 
 def dashboard_context(request):

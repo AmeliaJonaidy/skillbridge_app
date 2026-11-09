@@ -37,7 +37,9 @@
     <div class="job-card-footer">
         {% if has_pro and match %}
             <div>
-                <span class="match-label">{{ match.score }}% compatibility · {{ match.assessment }}</span>
+                <span class="match-badge {% if overall_score <= 40 %}match-badge-low{% elif overall_score <= 70 %}match-badge-medium{% else %}match-badge-high{% endif %}">Overall suitability: {{ overall_score }}%</span>
+                <span class="match-label">{{ match.assessment }}</span>
+                {% if ml_prediction %}<span class="match-label">Based on Skill Match (70%) and historical ML signal (30%)</span>{% endif %}
                 {% if match.missing_skills %}<p class="muted">Gap: {{ match.missing_skills|join:", " }}</p>{% endif %}
             </div>
         {% elif not has_pro %}

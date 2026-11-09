@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}Create a job listing · SkillBridge{% endblock %}
 
 {% block content %}
@@ -10,8 +9,6 @@
     </div>
 </div>
 
-{% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
-
 <section class="card account-card create-listing-card" style="width: 100%; max-width: none;">
     <h2>Create a job listing</h2>
     {% if not company %}
@@ -20,11 +17,55 @@
         <form method="post" class="form-grid">
             {% csrf_token %}
             {% for field in form %}
+                {% if field.name == 'title' %}
+                <label class="field">{{ field.label }}{{ field }}{{ field.errors }}</label>
+                {% endif %}
+            {% endfor %}
+            <p class="muted span2">Optional weighted matching: define recruiter priorities such as <code>Creativity: 60</code> and <code>UI/UX: 40</code>. Evidence can be weighted with <code>Projects: 40</code>, <code>Internship: 50</code>, and <code>Self-proclaimed skills: 10</code>.</p>
+            {% if has_pro %}
+            {% endif %}
+            {% for field in form %}
+                {% if field.name != 'title' %}
                 <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'preferred_skills' %}span2{% endif %}">
                     {{ field.label }}{{ field }}{{ field.errors }}
                 </label>
+                {% if field.name == 'stipend' and has_pro %}
+                <div class="reference-action">
+                    <button class="small" type="submit" name="action" value="suggest_reference">Find reference matches</button>
+                </div>
+                {% endif %}
+                {% endif %}
             {% endfor %}
-            <div class="static-page-actions span2"><button class="primary" type="submit">Publish listing</button></div>
+            {% if has_pro and suggestions %}
+            <div class="reference-suggestions span2" aria-live="polite">
+                <div class="reference-suggestions-heading">
+                    <div>
+                        <h3>Reference matches</h3>
+                        <p class="sub">Review similar catalogue jobs and use their skills as suggestions. Each choice reloads the form and replaces only the selected skill field.</p>
+                    </div>
+                </div>
+                {% for suggestion in suggestions %}
+                <article class="reference-suggestion">
+                    <div>
+                        <strong>{{ suggestion.title }}</strong>
+                        <span class="reference-meta">{{ suggestion.score }}% title similarity · {{ suggestion.confidence }} confidence</span>
+                    </div>
+                    <p class="reference-skills">{{ suggestion.skills|join:", " }}</p>
+                    <div class="row wrap">
+                        <button class="small" type="submit" name="action" value="use_reference_required:{{ forloop.counter0 }}">Use skills as required</button>
+                        <button class="small" type="submit" name="action" value="use_reference_preferred:{{ forloop.counter0 }}">Use skills as preferred</button>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            {% if not has_pro %}
+            <div class="card span2">
+                <p class="sub">Pro includes title-based skill suggestions for faster listing creation. <a href="{% url 'plans' %}">View Pro plans →</a></p>
+            </div>
+            {% endif %}
+            {% endif %}
+            <div class="static-page-actions span2"><button class="primary" type="submit">Create job</button></div>
         </form>
     {% endif %}
 </section>

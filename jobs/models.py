@@ -61,6 +61,8 @@ class Job(models.Model):
     required_skills = models.TextField(blank=True)
     preferred_skills = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="open")
+    skill_weights = models.JSONField(default=dict, blank=True)
+    evidence_weights = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
