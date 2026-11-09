@@ -40,20 +40,4 @@
 </section>
 {% endif %}
 
-<section class="card account-card">
-    <h2>Find a company</h2>
-    <p class="sub">Search your saved companies or use a LinkedIn company URL. LinkedIn lookup is enabled when the server has an approved API token.</p>
-    <form method="get" class="filterbar">
-        {{ lookup_form.query }}
-        <button class="button" type="submit">Find company</button>
-    </form>
-    {% if lookup_data %}
-        <div class="profile-message">
-            <strong>Company found from {{ lookup_data.source|title }}.</strong>
-            <p>{{ lookup_data.name }}{% if lookup_data.website %} · {{ lookup_data.website }}{% endif %}</p>
-            {% if lookup_data.logo_url %}<img src="{{ lookup_data.logo_url }}" alt="{{ lookup_data.name }} logo" width="48" height="48">{% endif %}
-            <p class="sub">The details above are now prefilled in the company form. Review and save them.</p>
-        </div>
-    {% endif %}
-</section>
 {% endblock %}

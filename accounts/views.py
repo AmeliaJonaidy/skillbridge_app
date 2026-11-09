@@ -13,9 +13,10 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from employers.choices import INDUSTRY_CHOICES
+from employers.services import lookup_company
 
 from .choices import (
     CAREER_CHOICES,
@@ -213,6 +214,15 @@ def signup_view(request):
     if request.method == "POST" and form.is_valid():
         user = form.save()
         UserProfile.objects.create(user=user, role=form.cleaned_data["role"])
+        if form.cleaned_data["role"] == "recruiter" and form.cleaned_data.get("company_name"):
+            from employers.models import Company, RecruiterProfile
+
+            company = Company.objects.create(
+                name=form.cleaned_data["company_name"],
+                website=form.cleaned_data.get("company_website", ""),
+                logo_url=form.cleaned_data.get("company_logo_url", ""),
+            )
+            RecruiterProfile.objects.create(user=user, company=company)
         referrer_profile = UserProfile.objects.select_related("user").filter(
             referral_code__iexact=referral_code,
             user__is_active=True,
@@ -235,6 +245,12 @@ def signup_view(request):
             request.session["post_onboarding_next"] = requested_next
         return redirect("onboarding")
     return render(request, "accounts/signup.html", {"form": form, "referral_code": referral_code})
+
+
+@require_GET
+def signup_company_lookup(request):
+    query = request.GET.get("q", "").strip()
+    return JsonResponse({"query": query, "result": lookup_company(query) if query else None})
 
 
 @login_required

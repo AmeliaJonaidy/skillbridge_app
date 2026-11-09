@@ -8,7 +8,73 @@
 <label class="field">Username{{ form.username }}{% for error in form.username.errors %}<span class="auth-error">{{ error }}</span>{% endfor %}</label>
 <label class="field">Email address{{ form.email }}{% for error in form.email.errors %}<span class="auth-error">{{ error }}</span>{% endfor %}</label>
 <fieldset class="role-choice"><legend>{{ form.role.label }}</legend>{{ form.role }}{% for error in form.role.errors %}<span class="auth-error">{{ error }}</span>{% endfor %}</fieldset>
+<section class="signup-company" data-signup-company hidden>
+    <h3>Which company are you recruiting for?</h3>
+    <p class="sub">Find your company so its name and logo appear on your job listings.</p>
+    <input type="search" placeholder="Search company name or LinkedIn URL" autocomplete="organization" data-company-search>
+    <div class="signup-company-results" data-company-results></div>
+    {{ form.company_name }}{{ form.company_website }}{{ form.company_logo_url }}
+    <div class="signup-company-selected" data-company-selected hidden></div>
+</section>
 <label class="field">Password{{ form.password1 }}{% for error in form.password1.errors %}<span class="auth-error">{{ error }}</span>{% endfor %}</label>
 <label class="field">Confirm password{{ form.password2 }}{% for error in form.password2.errors %}<span class="auth-error">{{ error }}</span>{% endfor %}</label>
 <button class="primary full" type="submit">Create account →</button></form><p class="sub" style="margin-top:20px">Already registered? <a href="{% url 'login' %}">Sign in</a></p></div><p class="auth-footer">Find work. Build your team.</p></section></div>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const companySection = document.querySelector("[data-signup-company]");
+    const roleInputs = document.querySelectorAll("input[name='role']");
+    const search = document.querySelector("[data-company-search]");
+    const results = document.querySelector("[data-company-results]");
+    const selected = document.querySelector("[data-company-selected]");
+    const nameField = document.querySelector("#id_company_name");
+    const websiteField = document.querySelector("#id_company_website");
+    const logoField = document.querySelector("#id_company_logo_url");
+    let timer;
+    const toggle = () => {
+        companySection.hidden = ![...roleInputs].some((input) => input.checked && input.value === "recruiter");
+    };
+    const showResult = (company) => {
+        results.replaceChildren();
+        if (!company) return;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "signup-company-result";
+        if (company.logo_url) {
+            const image = document.createElement("img");
+            image.src = company.logo_url;
+            image.alt = "";
+            button.append(image);
+        }
+        const text = document.createElement("span");
+        text.textContent = `${company.name}${company.website ? ` · ${company.website}` : ""}`;
+        button.append(text);
+        button.addEventListener("click", () => {
+            nameField.value = company.name || "";
+            websiteField.value = company.website || "";
+            logoField.value = company.logo_url || "";
+            selected.hidden = false;
+            selected.innerHTML = company.logo_url
+                ? `<img src="${company.logo_url}" alt="${company.name} logo"><strong>${company.name}</strong>`
+                : `<strong>${company.name}</strong>`;
+            results.replaceChildren();
+            search.value = company.name || "";
+        });
+        results.append(button);
+    };
+    const lookup = () => {
+        const query = search.value.trim();
+        if (!query) { results.replaceChildren(); return; }
+        fetch(`{% url 'signup_company_lookup' %}?q=${encodeURIComponent(query)}`)
+            .then((response) => response.json())
+            .then((data) => showResult(data.result))
+            .catch(() => results.replaceChildren());
+    };
+    roleInputs.forEach((input) => input.addEventListener("change", toggle));
+    search.addEventListener("input", () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(lookup, 300);
+    });
+    toggle();
+});
+</script>
 {% endblock %}
