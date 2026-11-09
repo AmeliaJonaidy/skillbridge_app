@@ -210,7 +210,14 @@ def login_view(request):
 
 def signup_view(request):
     form = SignupForm(request.POST or None)
-    referral_code = (request.POST.get("referral_code") or request.GET.get("ref") or "").strip().upper()
+    referral_code = (
+        request.POST.get("referral_code")
+        or request.GET.get("ref")
+        or request.session.get("referral_code")
+        or ""
+    ).strip().upper()
+    if referral_code:
+        request.session["referral_code"] = referral_code
     if request.method == "POST" and form.is_valid():
         user = form.save()
         UserProfile.objects.create(user=user, role=form.cleaned_data["role"])
@@ -235,6 +242,7 @@ def signup_view(request):
             )
             award_referral(referral)
             notify(user, "Referral reward applied", "Your referral was accepted and 7 days of SkillBridge Pro were added.", "account")
+        request.session.pop("referral_code", None)
         login(request, user)
         request.session["onboarding_step"] = 0
         request.session["onboarding_answers"] = {}
