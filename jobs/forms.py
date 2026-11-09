@@ -16,6 +16,16 @@ class JobForm(forms.ModelForm):
         help_text="One per line, for example: Projects: 40, Internship: 50, Self-proclaimed skills: 10.",
         widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Projects: 40\nInternship: 50\nSelf-proclaimed skills: 10"}),
     )
+
+    @staticmethod
+    def _weight_text(value):
+        return "\n".join(f"{label}: {weight:g}" for label, weight in (value or {}).items())
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and not self.is_bound:
+            self.initial["skill_weights"] = self._weight_text(self.instance.skill_weights)
+            self.initial["evidence_weights"] = self._weight_text(self.instance.evidence_weights)
     class Meta:
         model = Job
         fields = [

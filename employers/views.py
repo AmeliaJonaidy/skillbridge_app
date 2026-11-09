@@ -84,6 +84,33 @@ def create_listing(request):
 
 
 @recruiter_required
+def edit_listing(request, job_id):
+    job = get_object_or_404(Job, pk=job_id, created_by=request.user)
+    form = JobForm(request.POST or None, instance=job)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Job listing updated.")
+        return redirect("recruiter_listings")
+    recruiter = _recruiter(request)
+    return render(
+        request,
+        "employers/create_listing.html",
+        _context(request, form=form, company=recruiter.company, editing=True, job=job),
+    )
+
+
+@recruiter_required
+def delete_listing(request, job_id):
+    job = get_object_or_404(Job, pk=job_id, created_by=request.user)
+    if request.method == "POST":
+        title = job.title
+        job.delete()
+        messages.success(request, f'Job listing "{title}" was deleted.')
+        return redirect("recruiter_listings")
+    return render(request, "employers/delete_listing.html", _context(request, job=job))
+
+
+@recruiter_required
 def applicants(request):
     jobs = Job.objects.filter(created_by=request.user)
     applications = JobApplication.objects.filter(job__in=jobs).select_related("candidate", "job")

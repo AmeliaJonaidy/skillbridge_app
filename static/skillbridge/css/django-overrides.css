@@ -70,6 +70,21 @@ th {
     background:#eaf1ff;
 }
 
+.company-logo-status .row {
+    align-items:center;
+    gap:12px;
+}
+
+.job-company-logo {
+    display:inline-block;
+    width:32px;
+    height:32px;
+    margin-right:6px;
+    vertical-align:middle;
+    object-fit:contain;
+    border-radius:8px;
+}
+
 .brand-logo-shell {
     display:inline-flex;
     align-items:center;

@@ -27,6 +27,19 @@
     <div class="static-page-actions"><button class="primary" type="submit">Save company profile</button></div>
 </form>
 
+{% if company.logo_url %}
+<section class="card account-card company-logo-status">
+    <p class="eyebrow">Company logo</p>
+    <div class="row">
+        <span class="company-logo company-logo-image"><img src="{{ company.logo_url }}" alt="{{ company.name }} logo" width="56" height="56"></span>
+        <div>
+            <strong>{{ company.name }}</strong>
+            <p class="sub">Logo connected and visible on your job listings.</p>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <section class="card account-card">
     <h2>Find a company</h2>
     <p class="sub">Search your saved companies or use a LinkedIn company URL. LinkedIn lookup is enabled when the server has an approved API token.</p>

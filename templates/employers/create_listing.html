@@ -13,7 +13,7 @@
 {% if messages %}{% for message in messages %}<div class="card profile-message">{{ message }}</div>{% endfor %}{% endif %}
 
 <section class="card account-card create-listing-card" style="width: 100%; max-width: none;">
-    <h2>Create a job listing</h2>
+    <h2>{% if editing %}Edit job listing{% else %}Create a job listing{% endif %}</h2>
     {% if not company %}
         <p class="sub">Complete your <a href="{% url 'recruiter_company' %}">company profile</a> first.</p>
     {% else %}
@@ -24,7 +24,10 @@
                     {{ field.label }}{{ field }}{{ field.errors }}
                 </label>
             {% endfor %}
-            <div class="static-page-actions span2"><button class="primary" type="submit">Publish listing</button></div>
+            <div class="static-page-actions span2">
+                <button class="primary" type="submit">{% if editing %}Save changes{% else %}Publish listing{% endif %}</button>
+                {% if editing %}<a class="button" href="{% url 'recruiter_listings' %}">Cancel</a>{% endif %}
+            </div>
         </form>
     {% endif %}
 </section>

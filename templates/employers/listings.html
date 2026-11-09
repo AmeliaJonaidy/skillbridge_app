@@ -15,17 +15,29 @@
 
 <div class="card table-wrap">
     <table>
-        <thead><tr><th>Title</th><th>Applicants</th><th>Type</th><th>Status</th></tr></thead>
+        <thead><tr><th>Company</th><th>Title</th><th>Applicants</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
             {% for job in jobs %}
                 <tr>
+                    <td>
+                        {% if job.company.logo_url %}
+                            <span class="company-logo company-logo-image"><img src="{{ job.company.logo_url }}" alt="{{ job.company.name }} logo" width="40" height="40"></span>
+                        {% else %}
+                            <span class="company-logo">{{ job.company.name|first|default:"N" }}</span>
+                        {% endif %}
+                        {{ job.company.name }}
+                    </td>
                     <td>{{ job.title }}</td>
                     <td>{{ job.applications.count }}</td>
                     <td>{{ job.get_employment_type_display }}</td>
                     <td><span class="pill {% if job.status == 'open' %}progress-green{% endif %}">{{ job.get_status_display }}</span></td>
+                    <td>
+                        <a class="button small" href="{% url 'recruiter_edit_listing' job.id %}">Edit</a>
+                        <a class="button small" href="{% url 'recruiter_delete_listing' job.id %}">Delete</a>
+                    </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="4">No job listings yet.</td></tr>
+                <tr><td colspan="6">No job listings yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>

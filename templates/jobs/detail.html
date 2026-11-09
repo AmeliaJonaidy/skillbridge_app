@@ -6,7 +6,10 @@
 <article class="card job-detail">
     <p class="eyebrow">{{ job.industry|default:"OPPORTUNITY" }} · {{ job.location|default:"Location not specified" }}</p>
     <h1>{{ job.title }}</h1>
-    <p class="sub">{{ job.company.name }} · {{ job.get_employment_type_display }}{% if job.salary_display %} · {{ job.salary_display }}{% endif %}</p>
+    <p class="sub">
+        {% if job.company.logo_url %}<img class="job-company-logo" src="{{ job.company.logo_url }}" alt="{{ job.company.name }} logo" width="32" height="32">{% endif %}
+        {{ job.company.name }} · {{ job.get_employment_type_display }}{% if job.salary_display %} · {{ job.salary_display }}{% endif %}
+    </p>
 
     <div class="divider"></div>
 
