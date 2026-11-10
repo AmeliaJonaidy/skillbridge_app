@@ -41,7 +41,7 @@ class SignupForm(UserCreationForm):
     email = forms.EmailField(label="Email address")
     role = forms.ChoiceField(
         label="I want to use SkillBridge as",
-        choices=[("candidate", "Applicant — find jobs and build my career"), ("recruiter", "Recruiter — hire candidates")],
+        choices=[("candidate", "Candidate — find jobs and build my career"), ("recruiter", "Recruiter — hire candidates")],
         widget=forms.RadioSelect,
         initial="candidate",
     )
@@ -62,6 +62,8 @@ class SignupForm(UserCreationForm):
 
 
 class OnboardingForm(forms.Form):
+    required_css_class = "required-field"
+
     def __init__(self, *args, field_name, label, field_type="text", choices=None, required=True, **kwargs):
         super().__init__(*args, **kwargs)
         field_kwargs = {"label": label, "required": required}

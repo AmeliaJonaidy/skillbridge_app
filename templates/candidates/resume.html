@@ -16,7 +16,7 @@
     <main class="resume-main-column">
     {% if main_resume %}
     <article class="resume-paper">
-        <pre class="resume-draft">{{ main_resume.content }}</pre>
+        <pre class="resume-draft">{{ main_resume.clean_content }}</pre>
     </article>
     {% else %}
     <article class="resume-paper">

@@ -30,13 +30,13 @@
         {% csrf_token %}
         <input type="hidden" name="interview_id" data-interview-id-field>
         <div class="interview-notes-field" data-notes-section>
-            <label class="field">{{ form.candidate_notes.label }}{{ form.candidate_notes }}{{ form.candidate_notes.errors }}</label>
+            <label class="field">{% include "components/field_label.html" with field=form.candidate_notes %}{{ form.candidate_notes }}{{ form.candidate_notes.errors }}</label>
         </div>
         <button class="button" type="button" data-toggle-reschedule>Reschedule interview</button>
         <div class="interview-reschedule-fields" data-reschedule-fields hidden>
-            <label class="field">{{ form.requested_start.label }}{{ form.requested_start }}{{ form.requested_start.errors }}</label>
-            <label class="field">{{ form.requested_end.label }}{{ form.requested_end }}{{ form.requested_end.errors }}</label>
-            <label class="field">{{ form.reschedule_reason.label }}{{ form.reschedule_reason }}{{ form.reschedule_reason.errors }}</label>
+            <label class="field">{% include "components/field_label.html" with field=form.requested_start %}{{ form.requested_start }}{{ form.requested_start.errors }}</label>
+            <label class="field">{% include "components/field_label.html" with field=form.requested_end %}{{ form.requested_end }}{{ form.requested_end.errors }}</label>
+            <label class="field">{% include "components/field_label.html" with field=form.reschedule_reason %}{{ form.reschedule_reason }}{{ form.reschedule_reason.errors }}</label>
         </div>
         <div class="row between"><button class="button" type="button" data-close-interview>Cancel</button><button class="primary" type="submit" data-submit-interview>Save changes</button></div>
     </form>

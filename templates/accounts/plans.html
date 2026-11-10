@@ -7,9 +7,11 @@
     <div>
         <h1>My plans</h1>
         <p class="sub">Choose the tools that fit the way you use SkillBridge.</p>
-        <p class="pill {% if has_pro %}progress-green{% endif %}">Current plan: {{ profile.get_plan_display }}</p>
+        <p class="pill {% if has_pro %}progress-green{% endif %}">Current plan: {% if has_pro %}SkillBridge Pro{% else %}SkillBridge Free{% endif %}</p>
     </div>
 </div>
+
+{% for message in messages %}<p class="card profile-message" role="status">{{ message }}</p>{% endfor %}
 
 <section class="plan-grid">
     <article class="card plan-card">
@@ -44,7 +46,7 @@
                 <li>See which required and preferred skills you already have.</li>
                 <li>See the missing skills you may need to develop.</li>
                 <li>Get a clear readiness label, such as Strong fit or Developing fit.</li>
-                <li>Understand what affects your score: skills, career direction, experience, and profile evidence.</li>
+                <li>Understand the skill coverage and evidence behind your score.</li>
                 <li>Prioritise the jobs where your current profile is strongest.</li>
             </ul>
         </div>
@@ -64,9 +66,19 @@
         {% if has_pro %}
             <span class="pill progress-green">Pro active{% if profile.plan_expires_at %} until {{ profile.plan_expires_at|date:"d M Y" }}{% endif %}</span>
             <p class="sub">Your Pro insights are available on job pages and applicant review pages.</p>
-            <a class="button button-danger" href="{% url 'cancel_pro_confirm' %}">Cancel Pro</a>
-            <p class="sub">You can cancel before the next renewal. We will ask you to confirm first.</p>
+            {% if profile.pro_trial_started_at and profile.plan_expires_at %}<p class="sub">Your trial ends automatically. No payment is taken.</p>{% endif %}
+            <a class="button button-danger" href="{% url 'cancel_pro_confirm' %}">{% if profile.pro_trial_started_at and profile.plan_expires_at %}End trial{% else %}Cancel Pro{% endif %}</a>
+            {% if not profile.plan_expires_at %}<p class="sub">You can cancel before the next renewal. We will ask you to confirm first.</p>{% endif %}
         {% else %}
+            {% if not profile.pro_trial_started_at %}
+                <form method="post" action="{% url 'start_pro_trial' %}">
+                    {% csrf_token %}
+                    <button class="primary button" type="submit">Start 7-day free trial</button>
+                </form>
+                <p class="sub">Try all Pro features once, with no payment details. Access ends automatically after seven days.</p>
+            {% else %}
+                <p class="sub">Your seven-day free trial has been used.</p>
+            {% endif %}
             {% if stripe_enabled %}
                 <a class="primary button" href="{% url 'pro_checkout_confirm' %}">Continue to Pro checkout →</a>
                 <p class="sub">Pro is a monthly subscription. Stripe test mode (<code>sk_test_</code>) will charge the payment method every month until you cancel. No real card is charged in test mode.</p>
@@ -78,40 +90,11 @@
     </article>
 </section>
 
-<section class="card account-card referral-card">
-    <p class="eyebrow">Refer a friend</p>
-    <h2>Give a week of Pro. Get a week of Pro.</h2>
-    <p class="sub">When a friend creates an account through your link, both of you receive seven days of SkillBridge Pro. If you already pay for Pro, Stripe moves your next billing date back by seven days.</p>
-    <div class="referral-link-row">
-        <input type="text" value="{{ referral_url }}" readonly data-referral-link aria-label="Your referral link">
-        <button class="button" type="button" data-copy-referral>Copy link</button>
-    </div>
-    <p class="sub">Referral code: <b>{{ profile.referral_code }}</b> · One reward per new account.</p>
-    {% if referrals %}
-        <div class="referral-history">
-            <h3>Your referrals</h3>
-            {% for referral in referrals %}<p>{{ referral.referred_user.username }} · {{ referral.get_status_display }} · {{ referral.created_at|date:"d M Y" }}</p>{% endfor %}
-        </div>
-    {% endif %}
-</section>
-
 {% if payments %}
 <section class="card account-card">
     <h2>Payment history</h2>
     {% for payment in payments %}<p>{{ payment.provider|title }} · {{ payment.currency }} {{ payment.amount }} · {{ payment.get_status_display }} · {{ payment.created_at|date:"d M Y" }}</p>{% endfor %}
 </section>
 {% endif %}
-<script>
-document.querySelector("[data-copy-referral]")?.addEventListener("click", async (event) => {
-    const field = document.querySelector("[data-referral-link]");
-    try {
-        await navigator.clipboard.writeText(field.value);
-        event.currentTarget.textContent = "Copied";
-    } catch (error) {
-        field.select();
-        document.execCommand("copy");
-        event.currentTarget.textContent = "Copied";
-    }
-});
-</script>
+
 {% endblock %}

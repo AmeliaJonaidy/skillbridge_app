@@ -56,9 +56,11 @@ class ApplicationWorkflowTests(TestCase):
 
         self.assertRedirects(response, reverse("candidate_applications"))
         application = JobApplication.objects.get(candidate=self.candidate, job=self.job)
-        self.assertEqual(application.match_score, 74)
+        # Two of three skills earn 47 points, plus 3 for declared skills.
+        self.assertEqual(application.match_score, 50)
         self.assertEqual(application.missing_skills, ["JavaScript"])
-        self.assertEqual(application.match_breakdown["required_skills"], {"earned": 40, "max": 60})
+        self.assertEqual(application.match_breakdown["skill_match"]["earned"], 47)
+        self.assertEqual(application.match_breakdown["evidence_match"]["earned"], 3)
 
     def test_recruiter_can_update_status_and_schedule_interview(self):
         JobApplication.objects.create(candidate=self.candidate, job=self.job)

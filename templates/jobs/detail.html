@@ -3,7 +3,10 @@
 {% block title %}{{ job.title }} · SkillBridge{% endblock %}
 
 {% block content %}
-<article class="card job-detail">
+<article class="card job-detail job-detail-workspace">
+    <header class="job-detail-header">
+    <div class="job-detail-heading-copy">
+    <a class="job-back-link" href="{% url 'candidate_jobs' %}">← Find a job</a>
     <p class="eyebrow">{{ job.get_role_type_display }} · {{ job.industry|default:"OPPORTUNITY" }} · {{ job.location|default:"Location not specified" }}</p>
     <h1>{{ job.title }}</h1>
     <p class="sub">
@@ -11,9 +14,25 @@
         {{ job.company.name }} · {{ job.get_employment_type_display }}{% if job.salary_display %} · {{ job.salary_display }}{% endif %}
     </p>
 
-    <div class="divider"></div>
-
-    <h2>About the role</h2>
+    </div>
+    {% if has_pro %}
+    <section class="job-header-compatibility" aria-label="Compatibility overview">
+        <div class="job-compatibility-caption">
+            <p class="eyebrow">Your Readiness</p>
+            <h2>Compatibility</h2>
+            {% if match.assessment %}<span class="pill">{{ match.assessment }}</span>{% endif %}
+        </div>
+        <div class="compatibility-scores job-header-scores" aria-label="Compatibility scores">
+            {% include "components/compatibility_score.html" with label="Skill Compatibility" score=match.score %}
+            {% include "components/compatibility_score.html" with label="Predicted Job Fit" score=match.score_breakdown.ai_match.earned %}
+        </div>
+    </section>
+    {% endif %}
+    </header>
+    {% for message in messages %}<p class="profile-message" role="status">{{ message }}</p>{% endfor %}
+    <div class="job-detail-columns">
+    <section class="job-description-panel" aria-labelledby="job-description-title" tabindex="0">
+    <h2 id="job-description-title">Job description</h2>
     <p class="sub">{{ job.description|linebreaksbr }}</p>
 
     <h2>Required skills</h2>
@@ -27,39 +46,27 @@
 
     {% if has_pro %}
     <div class="card match-summary">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Your readiness</p>
-                <h2>{{ match.score }}% skill compatibility</h2>
-            </div>
-            <div>{% if match.assessment %}<span class="pill">{{ match.assessment }}</span>{% endif %}{% if application %}<span class="pill progress-green">{{ application.get_status_display }}</span>{% endif %}</div>
+        <div class="skill-summary-group">
+            <h3>Matched:</h3>
+            <ul class="skill-summary-list">{% for skill in match.matched_skills %}<li>{{ skill }}</li>{% empty %}<li>None yet</li>{% endfor %}</ul>
         </div>
-        <p class="sub">Matched skills: {{ match.matched_skills|join:", "|default:"None yet" }}</p>
-        <p class="sub">Skills to develop: {{ match.missing_skills|join:", "|default:"None" }}</p>
-        <p class="sub"><strong>AI compatibility:</strong> {{ match.score_breakdown.ai_match.earned }}%</p>
-        {% if match.missing_skills %}<a class="button small" href="{% url 'candidate_learning' %}?job={{ job.id }}">See certifications to bridge this gap →</a>{% endif %}
-        <h3>How this score is assessed</h3>
-        <div class="tag-list">
-            {% for label, component in match.score_breakdown.items %}
-                {% if label != "ai_match" %}
-                <div class="match-component">
-                    <span class="tag">{{ label|title }}: {{ component.earned }}/{{ component.max }}</span>
-                    <p class="sub">{{ component.reason }}</p>
-                    {% for detail_label, detail in component.details.items %}
-                        <p class="sub"><strong>{{ detail_label|title }}:</strong> {{ detail.reason }}</p>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            {% endfor %}
-            {% with ai_match=match.score_breakdown.ai_match %}
-                {% if ai_match %}
-                <div class="match-component">
-                    <span class="tag">AI compatibility: {{ ai_match.earned }}%</span>
-                    <p class="sub">{{ ai_match.reason }}</p>
-                </div>
-                {% endif %}
-            {% endwith %}
+        <div class="skill-summary-group">
+            <h3>Missing:</h3>
+            <ul class="skill-summary-list">{% for skill in match.missing_skills %}<li>{{ skill }}</li>{% empty %}<li>None</li>{% endfor %}</ul>
         </div>
+        {% if match.score_breakdown.evidence_match.details %}
+        <div class="skill-summary-group">
+            <h3>Evidence found:</h3>
+            <ul class="skill-summary-list">{% for label, detail in match.score_breakdown.evidence_match.details.items %}{% if detail.earned %}<li>{{ label|capfirst }}</li>{% endif %}{% endfor %}</ul>
+            {% if not match.score_breakdown.evidence_match.earned %}<p class="muted">None yet</p>{% endif %}
+        </div>
+        <div class="skill-summary-group">
+            <h3>Missing evidence:</h3>
+            <ul class="skill-summary-list">{% for label, detail in match.score_breakdown.evidence_match.details.items %}{% if not detail.earned %}<li>{{ label|capfirst }}</li>{% endif %}{% endfor %}</ul>
+            {% if match.score_breakdown.evidence_match.earned == match.score_breakdown.evidence_match.max %}<p class="muted">None</p>{% endif %}
+        </div>
+        {% endif %}
+        {% if match.missing_skills %}<a class="button small" href="{% url 'candidate_learning' %}?job={{ job.id }}">Explore courses to bridge the gap →</a>{% endif %}
     </div>
     {% else %}
     <div class="card match-summary">
@@ -74,17 +81,14 @@
     </div>
     {% endif %}
 
-    {% if messages %}
-        {% for message in messages %}<p class="sub">{{ message }}</p>{% endfor %}
-    {% endif %}
-
     <div class="static-page-actions job-detail-actions">
-        <form method="post">
+        <form class="job-save-control" data-job-save="{{ job.id }}" method="post" action="{% url 'job_save' job.id %}">
             {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
             <input type="hidden" name="action" value="{% if is_saved %}unsave{% else %}save{% endif %}">
-            <button class="button star-action {% if is_saved %}saved{% endif %}" type="submit">
+            <button class="button star-action {% if is_saved %}saved{% endif %}" aria-pressed="{% if is_saved %}true{% else %}false{% endif %}" type="submit">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"></path></svg>
-                {% if is_saved %}Remove from saved jobs{% else %}Save job{% endif %}
+                <span data-save-label>{% if is_saved %}Remove from saved jobs{% else %}Save job{% endif %}</span>
             </button>
         </form>
         <form method="post">
@@ -94,11 +98,14 @@
         </form>
     </div>
 
+    </section>
+    <aside class="job-application-column" aria-labelledby="job-application-title">
+    <section class="job-application-panel">
+    <h2 id="job-application-title">Apply for this job</h2>
     {% if application %}
+        <p><span class="pill">{{ application.get_status_display }}</span></p>
         <p class="sub">You applied for this job on {{ application.created_at|date:"d M Y" }}.</p>
     {% else %}
-        <div class="divider"></div>
-        <h2>Apply for this job</h2>
         {% if profile_missing_fields %}
             <div class="card profile-message">
                 <strong>Complete your essential profile first.</strong>
@@ -106,17 +113,22 @@
                 <a class="button small" href="{% url 'candidate_profile' %}">Complete profile →</a>
             </div>
         {% endif %}
-        <form method="post" class="stack">
+        <form method="post" class="job-application-form" id="job-application-form">
             {% csrf_token %}
             <input type="hidden" name="action" value="apply">
+            {{ form.non_field_errors }}
             <label class="field">
                 Tailored cover letter draft
                 <small class="muted">This draft uses the job description and relevant evidence in your profile or resume. Edit it so it reflects your own voice before submitting.</small>
                 {{ form.cover_note }}
+                {{ form.cover_note.errors }}
             </label>
             <p class="muted">{% if main_resume %}Your selected main resume will be attached to this application.{% else %}A job-specific resume draft will be generated for this application.{% endif %}</p>
-            <button class="primary" type="submit">Submit application →</button>
         </form>
     {% endif %}
+    </section>
+    {% if application %}<button class="job-submit-button" type="button" disabled>Already Applied</button><a class="text-link" href="{% url 'candidate_applications' %}">View My Applications →</a>{% else %}<button class="primary job-submit-button" type="submit" form="job-application-form">Submit application →</button>{% endif %}
+    </aside>
+    </div>
 </article>
 {% endblock %}

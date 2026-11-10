@@ -33,6 +33,7 @@ urlpatterns = [
     path('onboarding/resume/scan/', views.scan_resume_upload, name='scan_resume_upload'),
     path('onboarding/resume/delete/', views.delete_onboarding_resume, name='delete_onboarding_resume'),
     path('plans/', views.plans, name='plans'),
+    path('plans/trial/', views.start_pro_trial, name='start_pro_trial'),
     path('plans/checkout/confirm/', views.pro_checkout_confirm, name='pro_checkout_confirm'),
     path('plans/checkout/', views.start_pro_checkout, name='start_pro_checkout'),
     path('plans/cancel/confirm/', views.cancel_pro_confirm, name='cancel_pro_confirm'),

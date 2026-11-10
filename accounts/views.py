@@ -1,5 +1,8 @@
 import json
 from decimal import Decimal
+from datetime import timedelta
+
+from django.db import transaction
 
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
@@ -31,7 +34,7 @@ from .choices import (
     choices_for_career,
 )
 from .forms import OnboardingForm, SignupForm
-from .models import Notification, Payment, Referral, UserProfile
+from .models import Notification, Payment, UserProfile
 from .payment_services import (
     PaymentProviderError,
     cancel_stripe_subscription,
@@ -41,7 +44,6 @@ from .payment_services import (
     stripe_payment_for_subscription,
     verify_stripe_signature,
 )
-from .referral_services import award_referral
 from .notification_helpers import notify
 
 
@@ -210,14 +212,6 @@ def login_view(request):
 
 def signup_view(request):
     form = SignupForm(request.POST or None)
-    referral_code = (
-        request.POST.get("referral_code")
-        or request.GET.get("ref")
-        or request.session.get("referral_code")
-        or ""
-    ).strip().upper()
-    if referral_code:
-        request.session["referral_code"] = referral_code
     if request.method == "POST" and form.is_valid():
         user = form.save()
         UserProfile.objects.create(user=user, role=form.cleaned_data["role"])
@@ -230,19 +224,6 @@ def signup_view(request):
                 logo_url=form.cleaned_data.get("company_logo_url", ""),
             )
             RecruiterProfile.objects.create(user=user, company=company)
-        referrer_profile = UserProfile.objects.select_related("user").filter(
-            referral_code__iexact=referral_code,
-            user__is_active=True,
-        ).first() if referral_code else None
-        if referrer_profile and referrer_profile.user_id != user.id:
-            referral = Referral.objects.create(
-                referrer=referrer_profile.user,
-                referred_user=user,
-                referral_code=referrer_profile.referral_code,
-            )
-            award_referral(referral)
-            notify(user, "Referral reward applied", "Your referral was accepted and 7 days of SkillBridge Pro were added.", "account")
-        request.session.pop("referral_code", None)
         login(request, user)
         request.session["onboarding_step"] = 0
         request.session["onboarding_answers"] = {}
@@ -252,7 +233,7 @@ def signup_view(request):
         if requested_next:
             request.session["post_onboarding_next"] = requested_next
         return redirect("onboarding")
-    return render(request, "accounts/signup.html", {"form": form, "referral_code": referral_code})
+    return render(request, "accounts/signup.html", {"form": form})
 
 
 @require_GET
@@ -483,10 +464,28 @@ def plans(request):
             "payments": Payment.objects.filter(user=request.user)[:5],
             "stripe_enabled": settings.STRIPE_SECRET_KEY.startswith("sk_test_"),
             "pro_plan_price": f"{settings.PRO_PLAN_CURRENCY.upper()} {settings.PRO_PLAN_AMOUNT_CENTS / 100:.2f}",
-            "referral_url": request.build_absolute_uri(f"{reverse('signup')}?ref={profile.referral_code}"),
-            "referrals": Referral.objects.filter(referrer=request.user)[:10],
         },
     )
+
+
+@login_required
+@require_POST
+def start_pro_trial(request):
+    now = timezone.now()
+    with transaction.atomic():
+        profile = _profile(request)
+        if profile.is_pro:
+            messages.info(request, "Your Pro access is already active.")
+        else:
+            granted = UserProfile.objects.filter(
+                pk=profile.pk, pro_trial_started_at__isnull=True,
+            ).update(plan="pro", plan_expires_at=now + timedelta(days=7), pro_trial_started_at=now)
+            if granted:
+                notify(request.user, "Pro trial started", "Your seven-day Pro trial is active. It ends automatically; no payment details are needed.", "account")
+                messages.success(request, "Your seven-day Pro trial is now active.")
+            else:
+                messages.info(request, "You have already used your seven-day Pro trial.")
+    return redirect("plans")
 
 
 @login_required
@@ -536,7 +535,13 @@ def cancel_pro(request):
         None,
     )
     if not payment:
-        messages.error(request, "No active Stripe subscription was found for this account.")
+        if profile.pro_trial_started_at and profile.plan_expires_at:
+            profile.plan = "free"
+            profile.plan_expires_at = None
+            profile.save(update_fields=["plan", "plan_expires_at"])
+            messages.success(request, "Your Pro trial has ended. Your account is now on Free.")
+        else:
+            messages.error(request, "No active Stripe subscription was found for this account.")
         return redirect("plans")
 
     try:

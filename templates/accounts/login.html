@@ -17,47 +17,17 @@
                 </div>
             </section>
             <div class="login-benefit-grid">
-                <article class="login-flip-card" tabindex="0" aria-label="Candidate benefits. Hover or focus to read more.">
-                    <div class="login-flip-card-inner">
-                        <section class="login-flip-front">
-                            <span class="login-card-number" aria-hidden="true">01</span>
-                            <h2>Candidates</h2>
-                            <span class="login-flip-hint">Hover over card to see more ↗</span>
-                        </section>
-                        <section class="login-flip-back">
-                            <h2>Candidate benefits</h2>
-                            <ul>
-                                <li>Find relevant jobs more efficiently.</li>
-                                <li>Build a professionally formatted resume.</li>
-                                <li>Understand skill gaps and career readiness.</li>
-                                <li>Track applications, interviews, and learning goals.</li>
-                            </ul>
-                        </section>
-                    </div>
+                <article class="login-benefit-card">
+                    <span class="login-benefit-kicker">For candidates</span>
+                    <h2>Your next opportunity</h2>
+                    <ul><li>Find jobs and understand your skill gaps.</li><li>Build a resume with your experience.</li><li>Track applications and learning goals.</li></ul>
                 </article>
-                <article class="login-flip-card" tabindex="0" aria-label="Recruiter benefits. Hover or focus to read more.">
-                    <div class="login-flip-card-inner">
-                        <section class="login-flip-front">
-                            <span class="login-card-number" aria-hidden="true">02</span>
-                            <h2>Recruiters</h2>
-                            <span class="login-flip-hint">Hover over card to see more ↗</span>
-                        </section>
-                        <section class="login-flip-back">
-                            <h2>Recruiter benefits</h2>
-                            <ul>
-                                <li>Shortlist suitable candidates faster.</li>
-                                <li>Compare skills with explainable matching.</li>
-                                <li>Manage listings, applications, and interviews.</li>
-                                <li>Build a trusted and verified company presence.</li>
-                            </ul>
-                        </section>
-                    </div>
+                <article class="login-benefit-card">
+                    <span class="login-benefit-kicker">For recruiters</span>
+                    <h2>Your next team member</h2>
+                    <ul><li>Publish roles and compare candidate skills.</li><li>Review applications in one workspace.</li><li>Manage shortlists and interviews.</li></ul>
                 </article>
             </div>
-            <section class="login-terms">
-                <h2>Terms and responsible use</h2>
-                <p>By signing in, you agree to provide accurate information, respect candidate privacy, use hiring tools fairly, and avoid scams, harassment, or discriminatory content. Premium access is subject to successful subscription payment and may be removed when payment ends.</p>
-            </section>
         </div>
         <p class="auth-story-footer">SkillBridge · One platform, better connections.</p>
     </aside>
@@ -67,8 +37,9 @@
                 <span class="brand-logo-shell brand-logo-form"><img class="brand-logo-image" src="{% static 'skillbridge/images/skillbridge-logo.png' %}" alt="SkillBridge"></span>
                 <p class="eyebrow">Welcome back</p>
                 <h2>Sign in to SkillBridge</h2>
-                <p class="sub">Access your applicant or recruiter workspace.</p>
-                <form method="post">{% csrf_token %}{% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}{{ form.as_p }}<button class="primary full" type="submit">Sign in →</button></form>
+                <p class="sub">Access your candidate or recruiter workspace.</p>
+                <form method="post">{% csrf_token %}{% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}{{ form.non_field_errors }}{% for field in form %}<label class="field" for="{{ field.id_for_label }}">{% include "components/field_label.html" with field=field %}{{ field }}{{ field.errors }}</label>{% endfor %}<button class="primary full" type="submit">Sign in →</button></form>
+                <p class="login-responsible-use"><strong>Terms and responsible use.</strong> Provide accurate information, respect candidate privacy, and use hiring tools fairly. Scams, harassment, and discriminatory content are not allowed.</p>
                 <div class="login-signup-option">
                     <span>or</span>
                     <a class="button full" href="{% url 'signup' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}">Create an account →</a>

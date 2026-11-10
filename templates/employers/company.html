@@ -17,7 +17,7 @@
     <div class="form-grid">
         {% for field in form %}
             <label class="field {% if field.name == 'description' or field.name == 'profile_photo' %}span2{% endif %}">
-                {{ field.label }}
+                {% include "components/field_label.html" with field=field %}
                 {% if field.name == 'profile_photo' and request.user.profile.profile_photo %}<img class="profile-photo-preview" src="{{ request.user.profile.profile_photo.url }}" alt="Current profile photo">{% endif %}
                 {{ field }}{{ field.errors }}
                 {% if field.name == 'profile_photo' %}<small class="muted">JPG, PNG, or WebP. Maximum 5 MB.</small>{% endif %}

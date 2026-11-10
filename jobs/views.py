@@ -1,5 +1,8 @@
 from django.contrib import messages
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from accounts.decorators import candidate_required
 from accounts.notification_helpers import notify
@@ -10,6 +13,26 @@ from resumes.models import TailoredResume
 from resumes.services import build_tailored_cover_letter, build_tailored_resume
 
 from .models import Job
+
+
+@candidate_required
+@require_POST
+def save_job(request, job_id):
+    job = get_object_or_404(Job, pk=job_id)
+    if request.POST.get("action") == "save":
+        SavedJob.objects.get_or_create(candidate=request.user, job=job)
+    elif request.POST.get("action") == "unsave":
+        SavedJob.objects.filter(candidate=request.user, job=job).delete()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "job_id": job.pk,
+            "is_saved": SavedJob.objects.filter(candidate=request.user, job=job).exists(),
+            "saved_count": SavedJob.objects.filter(candidate=request.user).count(),
+        })
+    next_url = request.POST.get("next", "")
+    if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return redirect(next_url)
+    return redirect("candidate_jobs")
 
 
 @candidate_required
@@ -69,7 +92,7 @@ def detail(request, job_id):
                     is_main=True,
                 ).first()
                 application.tailored_resume = (
-                    main_resume.content
+                    main_resume.clean_content
                     if main_resume
                     else build_tailored_resume(request.user, job)
                 )

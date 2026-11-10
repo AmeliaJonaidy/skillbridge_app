@@ -105,6 +105,14 @@ class JobForm(forms.ModelForm):
             "preferred_skills": forms.Textarea(attrs={"rows": 3}),
         }
 
+    def save(self, commit=True):
+        job = super().save(commit=False)
+        job.evidence_weights = self.cleaned_data["evidence_weights"]
+        if commit:
+            job.save()
+            self.save_m2m()
+        return job
+
     def clean(self):
         cleaned = super().clean()
         salary_min = cleaned.get("salary_min")

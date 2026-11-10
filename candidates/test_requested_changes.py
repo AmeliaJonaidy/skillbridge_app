@@ -1,0 +1,179 @@
+import tempfile
+from unittest.mock import patch
+
+from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+from accounts.models import UserProfile
+from applications.models import JobApplication, SavedJob
+from employers.models import Company
+from jobs.models import Job
+from resumes.models import TailoredResume
+
+
+@patch("matching.services.predict_ai_compatibility", side_effect=lambda resume, job, score: (score, {"mode": "skill_fallback"}))
+class RequestedWorkflowTests(TestCase):
+    def setUp(self):
+        self.media = tempfile.TemporaryDirectory()
+        self.override = override_settings(MEDIA_ROOT=self.media.name)
+        self.override.enable()
+        self.addCleanup(self.media.cleanup)
+        self.addCleanup(self.override.disable)
+        self.candidate = User.objects.create_user(username="candidate")
+        self.profile = UserProfile.objects.create(user=self.candidate, role="candidate", profile_data={
+            "skills": "Python", "career_interests": ["software-engineering"],
+        })
+        self.recruiter = User.objects.create_user(username="recruiter")
+        UserProfile.objects.create(user=self.recruiter, role="recruiter", plan="pro")
+        company = Company.objects.create(name="Company")
+        self.high = Job.objects.create(company=company, created_by=self.recruiter, title="Older Python job", description="Python", required_skills="Python", employment_type="full_time")
+        self.low = Job.objects.create(company=company, created_by=self.recruiter, title="Newer Java job", description="Java", required_skills="Java", employment_type="full_time")
+        self.client.force_login(self.candidate)
+
+    def test_pro_can_sort_jobs_by_score_while_free_keeps_newest(self, predictor):
+        url = reverse("candidate_jobs")
+        response = self.client.get(url, {"sort": "match"})
+        self.assertEqual(response.context["job_cards"][0]["job"], self.low)
+        self.profile.plan = "pro"
+        self.profile.save()
+        response = self.client.get(url, {"sort": "match"})
+        self.assertEqual(response.context["job_cards"][0]["job"], self.high)
+        response = self.client.get(url, {"sort": "match", "q": "Java"})
+        self.assertEqual([card["job"] for card in response.context["job_cards"]], [self.low])
+
+    def test_applied_status_is_shared_across_cards_and_detail(self, predictor):
+        JobApplication.objects.create(candidate=self.candidate, job=self.high)
+        SavedJob.objects.create(candidate=self.candidate, job=self.high)
+        jobs = self.client.get(reverse("candidate_jobs"))
+        flags = {card["job"].pk: card["has_applied"] for card in jobs.context["job_cards"]}
+        self.assertTrue(flags[self.high.pk])
+        self.assertFalse(flags[self.low.pk])
+        dashboard = self.client.get(reverse("home"))
+        self.assertTrue(next(job for job in dashboard.context["recent_jobs"] if job.pk == self.high.pk).has_applied)
+        self.assertTrue(self.client.get(reverse("candidate_saved_jobs")).context["job_cards"][0]["has_applied"])
+        detail = self.client.get(reverse("job_detail", args=[self.high.pk]))
+        self.assertContains(detail, 'disabled>Already Applied</button>')
+        self.assertNotContains(detail, 'form="job-application-form"')
+        self.client.post(reverse("job_detail", args=[self.high.pk]), {"action": "apply"})
+        self.assertEqual(JobApplication.objects.filter(candidate=self.candidate, job=self.high).count(), 1)
+
+    def test_saving_stays_on_list_and_saved_state_is_shared_across_pages(self, predictor):
+        next_url = reverse("candidate_jobs") + "?q=Python&sort=match"
+        url = reverse("job_save", args=[self.high.pk])
+        response = self.client.post(url, {"action": "save", "next": next_url})
+        self.assertEqual(response.url, next_url)
+        self.client.post(url, {"action": "save", "next": next_url})
+        self.assertEqual(SavedJob.objects.filter(candidate=self.candidate, job=self.high).count(), 1)
+        dashboard = self.client.get(reverse("home"))
+        self.assertTrue(next(job for job in dashboard.context["recent_jobs"] if job.pk == self.high.pk).is_saved)
+        self.assertContains(dashboard, 'aria-pressed="true"')
+        jobs = self.client.get(reverse("candidate_jobs"))
+        self.assertTrue(next(card for card in jobs.context["job_cards"] if card["job"].pk == self.high.pk)["is_saved"])
+        saved = self.client.get(reverse("candidate_saved_jobs"))
+        self.assertEqual(saved.context["job_cards"][0]["job"], self.high)
+        self.assertTrue(self.client.get(reverse("job_detail", args=[self.high.pk])).context["is_saved"])
+        response = self.client.post(url, {"action": "unsave", "next": reverse("home")})
+        self.assertEqual(response.url, reverse("home"))
+        dashboard = self.client.get(reverse("home"))
+        self.assertFalse(next(job for job in dashboard.context["recent_jobs"] if job.pk == self.high.pk).is_saved)
+        self.assertFalse(self.client.get(reverse("candidate_saved_jobs")).context["job_cards"])
+
+    def test_save_control_is_post_only_and_rejects_external_return_urls(self, predictor):
+        url = reverse("job_save", args=[self.high.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)
+        response = self.client.post(url, {"action": "save", "next": "https://example.com/"})
+        self.assertEqual(response.url, reverse("candidate_jobs"))
+        self.client.force_login(self.recruiter)
+        self.assertEqual(self.client.post(url, {"action": "unsave"}).status_code, 302)
+        self.assertTrue(SavedJob.objects.filter(candidate=self.candidate, job=self.high).exists())
+
+    def test_async_save_returns_persisted_status_and_count_without_redirect(self, predictor):
+        url = reverse("job_save", args=[self.high.pk])
+        response = self.client.post(url, {"action": "save"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"job_id": self.high.pk, "is_saved": True, "saved_count": 1})
+        self.assertTrue(SavedJob.objects.filter(candidate=self.candidate, job=self.high).exists())
+        response = self.client.post(url, {"action": "unsave"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"job_id": self.high.pk, "is_saved": False, "saved_count": 0})
+        self.assertFalse(SavedJob.objects.filter(candidate=self.candidate, job=self.high).exists())
+
+    def test_recruiter_sort_uses_application_snapshot_and_nulls_last(self, predictor):
+        low = JobApplication.objects.create(candidate=self.candidate, job=self.low, match_score=10)
+        high = JobApplication.objects.create(candidate=self.candidate, job=self.high, match_score=90)
+        other = User.objects.create_user(username="no-score")
+        missing = JobApplication.objects.create(candidate=other, job=self.high)
+        self.client.force_login(self.recruiter)
+        url = reverse("recruiter_applicants")
+        response = self.client.get(url, {"sort": "match"})
+        self.assertEqual(list(response.context["applications"]), [high, low, missing])
+        self.recruiter.profile.plan = "free"
+        self.recruiter.profile.save()
+        response = self.client.get(url, {"sort": "match"})
+        self.assertEqual(list(response.context["applications"]), [missing, high, low])
+
+    def test_equal_skill_scores_use_newest_order_even_when_ai_scores_differ(self, predictor):
+        self.profile.plan = "pro"
+        self.profile.profile_data = {"skills": "SQL"}
+        self.profile.save()
+        predictor.side_effect = lambda resume, job, score: (99 if "Python" in job else 1, {"mode": "dataset"})
+        response = self.client.get(reverse("candidate_jobs"), {"sort": "match"})
+        cards = response.context["job_cards"]
+        self.assertEqual(cards[0]["match"].score, cards[1]["match"].score)
+        self.assertEqual([card["job"] for card in cards], [self.low, self.high])
+        self.assertContains(response, "Equal scores are ordered newest first")
+
+    def test_job_without_skill_requirements_shows_unavailable_ai_score(self, predictor):
+        self.profile.plan = "pro"
+        self.profile.save()
+        self.low.required_skills = ""
+        self.low.description = "Help the team."
+        self.low.title = "General role"
+        self.low.save()
+        response = self.client.get(reverse("candidate_jobs"), {"q": "General role"})
+        self.assertContains(response, "Not available")
+        self.assertContains(response, "listing needs skill requirements")
+
+    def test_unsuitable_autofill_does_not_replace_existing_file_or_data(self, predictor):
+        self.profile.resume.save("existing.txt", SimpleUploadedFile("existing.txt", b"Original resume text"))
+        previous_name = self.profile.resume.name
+        response = self.client.post(reverse("candidate_profile"), {
+            "action": "autofill", "resume": SimpleUploadedFile("article.txt", b"An unrelated article about weather."),
+        })
+        self.assertEqual(response.status_code, 302)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.resume.name, previous_name)
+        self.assertEqual(self.profile.profile_data["skills"], "Python")
+
+    def test_suitable_autofill_is_accepted(self, predictor):
+        text = """Taylor Candidate
+taylor@example.com
+Education
+Bachelor of Science, National University of Singapore, 2024
+Skills
+Python SQL Git Django JavaScript
+Experience
+Software engineer intern, 2025
+Developed Python web services and database queries for a university project with a team of students.
+"""
+        self.client.post(reverse("candidate_profile"), {"action": "autofill", "resume": SimpleUploadedFile("resume.txt", text.encode())})
+        self.profile.refresh_from_db()
+        self.assertTrue(self.profile.resume)
+        self.assertEqual(self.profile.profile_data["name"], "Taylor Candidate")
+
+    def test_partial_skill_evidence_is_not_silently_discarded(self, predictor):
+        response = self.client.post(reverse("tailor_resume_for_interest", args=["software-engineering"]), {"description_Python": "Built a data cleaning script."})
+        self.assertContains(response, "provide both your experience and duration")
+        self.assertContains(response, "Built a data cleaning script.")
+        self.assertFalse(TailoredResume.objects.exists())
+
+    def test_learning_route_and_self_reported_evidence_are_explicit(self, predictor):
+        response = self.client.get(reverse("tailor_resume_for_interest", args=["software-engineering"]))
+        self.assertContains(response, "self-reported, not independently verified")
+        self.assertContains(response, "explore courses and activities")
+        self.client.post(reverse("tailor_resume_for_interest", args=["software-engineering"]), {
+            "description_Python": "Built a data cleaning script.", "duration_Python": "Two weeks",
+        })
+        self.assertIn("Python — Built a data cleaning script. (Two weeks)", TailoredResume.objects.get().content)

@@ -174,10 +174,10 @@ def _evidence_score(data, resume_text, configured):
         "self-proclaimed skills": bool(data.get("skills") or resume_text),
     }
     earned = sum(weight for label, weight in weights.items() if evidence.get(label, False))
-    return round(earned * 0.3 / 100), {
+    return round(earned * 0.3), {
         label: {
-            "earned": round(weight * 0.3 / 100) if evidence.get(label, False) else 0,
-            "max": round(weight * 0.3 / 100),
+            "earned": round(weight * 0.3) if evidence.get(label, False) else 0,
+            "max": round(weight * 0.3),
             "reason": f"{label.title()} evidence {'found' if evidence.get(label, False) else 'not found'} in your profile or resume.",
         }
         for label, weight in weights.items()

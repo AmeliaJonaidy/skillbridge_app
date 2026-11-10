@@ -3,7 +3,7 @@ import re
 
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
 from django.urls import reverse
@@ -29,10 +29,10 @@ from jobs.models import Job
 from matching.services import get_or_update_match, recommend_certifications_for_gap
 
 from .forms import CandidateProfileForm
-from .career_paths import CAREER_PATHS, _candidate_source, _skill_matches, career_progress, resume_fit_matrix
+from .career_paths import CAREER_FIT_PROFILES, CAREER_PATHS, _candidate_source, _skill_matches, career_progress, resume_fit_matrix
 from .certificate_verification import verify_certificate
 from .models import CandidateMilestone, Certification
-from .resume_parser import extract_resume_text, review_resume
+from .resume_parser import assess_resume_suitability, extract_resume_text, review_resume
 from .services import add_verified_certificate_to_resume, autofill_from_resume, sync_candidate_profile
 from resumes.models import TailoredResume
 from resumes.services import build_interest_tailored_resume
@@ -219,14 +219,19 @@ def jobs(request):
             job_queryset = job_queryset.filter(industry__icontains=industry)
 
     saved_ids = set(SavedJob.objects.filter(candidate=request.user).values_list("job_id", flat=True))
+    applied_ids = set(JobApplication.objects.filter(candidate=request.user).values_list("job_id", flat=True))
     job_cards = []
     for job in job_queryset:
         job_cards.append({
             "job": job,
             "match": get_or_update_match(request.user, job),
             "is_saved": job.id in saved_ids,
+            "has_applied": job.id in applied_ids,
         })
-    return render(request, "candidates/jobs.html", _context(request, form=form, job_cards=job_cards))
+    sort = "match" if request.GET.get("sort") == "match" and request.user.profile.is_pro else "newest"
+    if sort == "match":
+        job_cards.sort(key=lambda card: (card["match"].score, card["job"].created_at, card["job"].pk), reverse=True)
+    return render(request, "candidates/jobs.html", _context(request, form=form, job_cards=job_cards, sort=sort))
 
 
 @candidate_required
@@ -238,15 +243,17 @@ def profile(request):
         action = request.POST.get("action", "save")
         if action == "autofill":
             uploaded_resume = form.cleaned_data.get("resume")
-            if uploaded_resume:
-                profile.resume = uploaded_resume
-                profile.save(update_fields=["resume"])
-            if not profile.resume:
+            source = uploaded_resume or profile.resume
+            if not source:
                 messages.error(request, "Upload a resume first, then use auto-fill.")
             else:
                 data = dict(profile.profile_data or {})
-                updates, extracted_text = autofill_from_resume(profile.resume, data)
-                if extracted_text:
+                updates, extracted_text = autofill_from_resume(source, data)
+                suitable, reason = assess_resume_suitability(extracted_text)
+                if suitable:
+                    if uploaded_resume:
+                        profile.resume = uploaded_resume
+                        profile.save(update_fields=["resume"])
                     data.update(updates)
                     data["resume"] = profile.resume.name
                     profile.profile_data = data
@@ -254,7 +261,7 @@ def profile(request):
                     sync_candidate_profile(request.user, data)
                     notify(request.user, "Profile auto-filled", f"Sandy auto-filled {len(updates)} profile field(s) from your resume.", "profile")
                 else:
-                    messages.error(request, "We could not extract readable text from this resume. PDF support requires the pypdf package.")
+                    messages.error(request, reason)
             return redirect("candidate_profile")
         data = dict(profile.profile_data or {})
         changed_fields = ["profile_data"]
@@ -339,8 +346,8 @@ def tailor_resume_for_interest(request, interest):
     if interest not in _selected_career_interests(data):
         messages.error(request, "Select this career direction in your profile before tailoring a resume.")
         return redirect("candidate_resume")
-    path = CAREER_PATHS.get(interest)
-    if not path and interest not in {"sales", "product-management"}:
+    path = CAREER_PATHS.get(interest) or CAREER_FIT_PROFILES.get(interest)
+    if not path:
         messages.error(request, "This career direction is not available for tailoring yet.")
         return redirect("candidate_resume")
     source, _ = _candidate_source(request.user)
@@ -357,6 +364,10 @@ def tailor_resume_for_interest(request, interest):
             for skill in tracked_skills:
                 description = request.POST.get(f"description_{skill}", "").strip()
                 duration = request.POST.get(f"duration_{skill}", "").strip()
+                question = next(item for item in skill_questions if item["name"] == skill)
+                question.update(description=description, duration=duration)
+                if bool(description) != bool(duration):
+                    errors.append(f"For {skill}, provide both your experience and duration, or leave both blank and follow the learning route.")
                 if description and duration:
                     skill_evidence[skill] = {"description": description, "duration": duration}
         if errors:
@@ -659,7 +670,8 @@ def saved_jobs(request):
             saved.delete()
         return redirect("candidate_saved_jobs")
     saved = SavedJob.objects.filter(candidate=request.user).select_related("job__company")
-    return render(request, "candidates/jobs.html", _context(request, form=JobFilterForm(), job_cards=[{"job": item.job, "match": get_or_update_match(request.user, item.job), "is_saved": True} for item in saved], saved_page=True))
+    applied_ids = set(JobApplication.objects.filter(candidate=request.user).values_list("job_id", flat=True))
+    return render(request, "candidates/jobs.html", _context(request, form=JobFilterForm(), job_cards=[{"job": item.job, "match": get_or_update_match(request.user, item.job), "is_saved": True, "has_applied": item.job_id in applied_ids} for item in saved], saved_page=True))
 
 
 def dashboard_context(request):
@@ -677,6 +689,9 @@ def dashboard_context(request):
         "saved_count": SavedJob.objects.filter(candidate=request.user).count(),
         "profile_completion": _completion_percent(profile) if profile else 0,
         "upcoming_interviews": interviews.filter(scheduled_start__gte=now)[:1],
-        "recent_jobs": Job.objects.filter(status="open").select_related("company")[:3],
+        "recent_jobs": Job.objects.filter(status="open").select_related("company").annotate(
+            is_saved=Exists(SavedJob.objects.filter(candidate=request.user, job_id=OuterRef("pk"))),
+            has_applied=Exists(JobApplication.objects.filter(candidate=request.user, job_id=OuterRef("pk"))),
+        )[:3],
         "career_progress": career_progress(request.user, interests),
     }

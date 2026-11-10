@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from accounts.decorators import candidate_required
 
 from .models import TailoredResume
+from .review import review_draft, without_legacy_notes
 
 
 @candidate_required
@@ -15,18 +16,20 @@ def detail(request, resume_id):
         candidate=request.user,
     )
     if request.method == "POST":
-        content = request.POST.get("content", "").strip()
+        content = without_legacy_notes(request.POST.get("content", "").strip())
         if not content:
             messages.error(request, "Your resume cannot be empty.")
         else:
-            tailored_resume.content = content
+            tailored_resume.content = without_legacy_notes(content)
             tailored_resume.save(update_fields=["content", "updated_at"])
             messages.success(request, "Your resume changes were saved.")
             return redirect("resume_detail", resume_id=tailored_resume.id)
     return render(
         request,
         "resumes/detail.html",
-        {"role": "candidate", "tailored_resume": tailored_resume},
+        {"role": "candidate", "tailored_resume": tailored_resume,
+         "editor_content": without_legacy_notes(tailored_resume.content),
+         "review": review_draft(tailored_resume.content, tailored_resume.job)},
     )
 
 

@@ -113,12 +113,11 @@ def build_tailored_resume(candidate, job):
 
     Recruiter input comes from the job title, company, description, required and
     preferred skills. Candidate input comes from profile fields and the uploaded
-    resume. Missing skills are shown as review notes, never claimed as experience.
+    resume. Writing feedback and missing skills are reviewed separately in the editor.
     """
     profile = UserProfile.objects.filter(user=candidate).first()
     data = (profile.profile_data if profile else {}) or {}
     resume_text = _uploaded_resume_text(profile)
-    match = get_or_update_match(candidate, job)
     job_skills = _job_skills(job)
     candidate_source = " ".join(
         [
@@ -133,11 +132,7 @@ def build_tailored_resume(candidate, job):
     verified_job_skills = _dedupe(
         [skill for skill in job_skills if _contains(candidate_source, skill)]
     )
-    unverified_job_skills = _dedupe(
-        [skill for skill in job_skills if not _contains(candidate_source, skill)]
-    )
     relevant_evidence = _relevant_evidence(data, resume_text, job_skills)
-    description_points = _job_description_points(job, job_skills)
     focus, focus_terms = _role_focus(job)
     focus_evidence = _cover_letter_evidence(data, resume_text, job_skills, focus_terms)
     prioritised_evidence = _dedupe(focus_evidence + relevant_evidence)
@@ -161,27 +156,8 @@ def build_tailored_resume(candidate, job):
         summary_parts.append(
             "Relevant evidence currently includes " + ", ".join(verified_job_skills) + "."
         )
-    summary_parts.append(
-        "Review every statement against the original resume before submitting."
-    )
 
     all_skills = _dedupe(verified_job_skills + candidate_skills)
-    employer_details = "\n".join(
-        line for line in [
-            f"Company: {job.company.name}",
-            f"Industry: {job.get_industry_display() if job.industry else 'Not specified'}",
-            f"Location: {job.location or 'Not specified'}",
-            f"Employment type: {job.get_employment_type_display()}",
-        ]
-        if line
-    )
-    alignment_notes = [
-        "Compatibility score: " + str(match.score) + "% (used for guidance, not a hiring decision).",
-        "Verified matches: " + (", ".join(verified_job_skills) or "None found yet."),
-        "Skills to verify before adding: " + (", ".join(unverified_job_skills) or "None."),
-        "Evidence foregrounded for this role: " + focus + ".",
-    ]
-
     experience_lines = _dedupe(_clean_lines(data.get("experience")) + prioritised_evidence)
     project_lines = _dedupe(_clean_lines(data.get("portfolio")) + focus_evidence)
 
@@ -197,9 +173,6 @@ def build_tailored_resume(candidate, job):
         _section("CERTIFICATIONS", data.get("certifications")),
         _section("AWARDS & ACHIEVEMENTS", data.get("awards")),
         _section("WORK AUTHORISATION", data.get("visa")),
-        _section("EMPLOYER DETAILS USED", employer_details),
-        _section("JOB DESCRIPTION PRIORITIES", "\n".join(f"- {point}" for point in description_points)),
-        _section("TAILORING NOTES — REVIEW BEFORE SUBMITTING", "\n".join(f"- {note}" for note in alignment_notes)),
     ]
     return "\n\n".join(section for section in sections if section.strip())
 

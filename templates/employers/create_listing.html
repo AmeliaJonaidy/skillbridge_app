@@ -7,6 +7,7 @@
     <div>
         <h1>Create a job listing</h1>
         <p class="sub">Publish a new opportunity for candidates with a clear role type and required skills.</p>
+        {% if not editing %}<a class="button" href="{% url 'recruiter_import_listings' %}">Import listings from CSV / Excel</a>{% endif %}
     </div>
 </div>
 
@@ -22,7 +23,7 @@
             {% for field in form %}
                 {% if field.name != 'required_skills' and field.name != 'preferred_skills' %}
                 <label class="field {% if field.name == 'description' or field.name == 'required_skills' or field.name == 'required_skill_choices' or field.name == 'preferred_skills' or field.name == 'preferred_skill_choices' or field.name == 'skill_weights' or field.name == 'evidence_weights' %}span2{% endif %}">
-                    {{ field.label }}
+                    {% include "components/field_label.html" with field=field %}
                     {% if field.name == 'required_skill_choices' or field.name == 'preferred_skill_choices' %}
                         <div class="skills-picker" data-skills-picker>
                             {{ field }}
@@ -181,6 +182,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 const box = target.getBoundingClientRect();
                 list.insertBefore(dragged, event.clientY < box.top + box.height / 2 ? target : target.nextSibling);
             }
+        });
+        // Restore the saved order before writing the hidden field.
+        hidden.value.split(",").map((value) => value.trim().toLowerCase()).forEach((value) => {
+            const item = [...list.children].find((item) => item.dataset.evidence.toLowerCase() === value);
+            if (item) list.append(item);
         });
         sync();
     });

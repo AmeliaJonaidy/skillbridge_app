@@ -5,13 +5,14 @@
 {% block content %}
 <article class="card static-page">
     <p class="eyebrow">Manage your plan</p>
-    <h1>Cancel SkillBridge Pro?</h1>
-    <p class="sub">Please confirm that you want to cancel your Pro subscription.</p>
+    <h1>{% if profile.pro_trial_started_at and profile.plan_expires_at %}End your Pro trial?{% else %}Cancel SkillBridge Pro?{% endif %}</h1>
+    <p class="sub">Please confirm that you want to end your current Pro access.</p>
 
     <div class="card profile-message">
         <h2>What happens next?</h2>
+        {% if profile.pro_trial_started_at and profile.plan_expires_at %}<p>Your trial will end immediately. You cannot start another free trial.</p>{% else %}
         <p>Your Pro subscription will be cancelled and your account will return to the Free plan immediately.</p>
-        <p>You will not be charged for future months. If you want Pro again later, you will need to pay for a new monthly subscription.</p>
+        <p>You will not be charged for future months. If you want Pro again later, you will need to pay for a new monthly subscription.</p>{% endif %}
     </div>
 
     <div class="static-page-actions">

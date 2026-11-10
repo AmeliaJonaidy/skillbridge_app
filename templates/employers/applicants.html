@@ -13,13 +13,14 @@
 <form class="card filterbar" method="get">
     <select name="job">
         <option value="">All job listings</option>
-        {% for job in jobs %}<option value="{{ job.id }}">{{ job.title }}</option>{% endfor %}
+        {% for job in jobs %}<option value="{{ job.id }}"{% if request.GET.job == job.id|stringformat:"s" %} selected{% endif %}>{{ job.title }}</option>{% endfor %}
     </select>
     <select name="status">
         <option value="">All statuses</option>
-        {% for value, label in status_form.fields.status.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        {% for value, label in status_form.fields.status.choices %}<option value="{{ value }}"{% if request.GET.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
     </select>
-    <input name="q" placeholder="Search applicants">
+    <input name="q" placeholder="Search applicants" value="{{ request.GET.q|default:'' }}" aria-label="Search applicants">
+    {% if has_pro %}<label class="field">Sort by<select name="sort"><option value="newest"{% if sort != 'match' %} selected{% endif %}>Newest first</option><option value="match"{% if sort == 'match' %} selected{% endif %}>Highest match score</option></select></label>{% endif %}
     <button type="submit">Filter</button>
 </form>
 

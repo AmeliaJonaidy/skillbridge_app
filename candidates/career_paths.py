@@ -345,7 +345,7 @@ def _uploaded_resume_source(candidate):
 
     main_resume = TailoredResume.objects.filter(candidate=candidate, is_main=True).first()
     if main_resume:
-        return main_resume.content.split("SKILLS TO VERIFY BEFORE SUBMITTING", 1)[0]
+        return main_resume.clean_content.split("SKILLS TO VERIFY BEFORE SUBMITTING", 1)[0]
     profile = UserProfile.objects.filter(user=candidate).first()
     if not profile or not profile.resume:
         return ""

@@ -106,14 +106,14 @@
                                                         <input type="hidden" name="action" value="complete_course">
                                                         <input type="hidden" name="career_key" value="{{ goal.key }}">
                                                         <input type="hidden" name="course_title" value="{{ course.title }}">
-                                                        <label class="certificate-id-field">Certificate ID
+                                                        <label class="certificate-id-field"><span class="required-label">Certificate ID <span class="required-marker" aria-hidden="true">*</span></span>
                                                             <input type="text" name="certificate_id" maxlength="150" placeholder="Enter certificate ID" required>
                                                         </label>
-                                                        <label class="certificate-id-field">Official credential URL
+                                                        <label class="certificate-id-field"><span class="required-label">Official credential URL <span class="required-marker" aria-hidden="true">*</span></span>
                                                             <input type="url" name="verification_url" maxlength="500" placeholder="https://.../your-credential" required>
                                                             <small>Use the individual certificate or badge link, not the course page.</small>
                                                         </label>
-                                                        <label class="file-upload-label">Certificate evidence
+                                                        <label class="file-upload-label"><span class="required-label">Certificate evidence <span class="required-marker" aria-hidden="true">*</span></span>
                                                             <input type="file" name="evidence_file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" required>
                                                         </label>
                                                         <button class="button small" type="submit">Submit for verification</button>

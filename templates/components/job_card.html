@@ -1,4 +1,4 @@
-<article class="card job-card">
+<article data-job-card="{{ job.id }}" class="card job-card{% if has_pro and match %} job-card-with-scores{% endif %}">
     <div class="job-card-header">
         {% if job.company.logo_url %}
             <div class="company-logo company-logo-image">
@@ -8,49 +8,45 @@
             <div class="company-logo">{{ job.company.name|first|default:"N" }}</div>
         {% endif %}
         <div>
-            <h3>{{ job.title }}</h3>
+            <h3><a class="job-card-link" href="{% url 'job_detail' job.id %}">{{ job.title }}</a></h3>
+            {% if has_applied %}<span class="job-applied-tag">Applied</span>{% endif %}
             <p class="muted">{{ job.company.name }} · {{ job.industry|default:"Technology" }}</p>
         </div>
-        <form method="post" action="{% url 'job_detail' job.id %}">
+        <form data-job-save="{{ job.id }}" class="job-save-control" method="post" action="{% url 'job_save' job.id %}">
             {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
             <input type="hidden" name="action" value="{% if is_saved %}unsave{% else %}save{% endif %}">
-            <button class="icon-button star-button {% if is_saved %}saved{% endif %}" type="submit" aria-label="{% if is_saved %}Remove saved job{% else %}Save job{% endif %}" title="{% if is_saved %}Remove saved job{% else %}Save job{% endif %}">
+            <button class="icon-button star-button {% if is_saved %}saved{% endif %}" aria-pressed="{% if is_saved %}true{% else %}false{% endif %}" type="submit" aria-label="{% if is_saved %}Remove saved job{% else %}Save job{% endif %}" title="{% if is_saved %}Remove saved job{% else %}Save job{% endif %}">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"></path></svg>
             </button>
         </form>
     </div>
 
-    <div class="job-meta">
-        <span>⌖ {{ job.location|default:"Location not specified" }}</span>
-        <span>◷ {{ job.get_employment_type_display }}</span>
-        {% if job.salary_display %}<span>{{ job.salary_display }}</span>{% endif %}
-    </div>
-
-    <div class="tag-list">
-        {% for skill in job.required_skill_list|slice:":4" %}
-            <span class="tag">{{ skill }}</span>
-        {% empty %}
-            <span class="tag">Skills to be confirmed</span>
-        {% endfor %}
-    </div>
-
-    <div class="job-card-footer">
-        {% if has_pro and match %}
-            <div>
-                <span class="match-label">Skill compatibility: {{ match.score }}% · {{ match.assessment }}</span>
-                {% if match.score_breakdown.ai_match %}
-                    <span class="match-label">AI compatibility: {{ match.score_breakdown.ai_match.earned }}%</span>
-                {% endif %}
-                {% if match.missing_skills %}<p class="muted">Missing skills: {{ match.missing_skills|join:", " }}</p>{% endif %}
+    <div class="job-card-content">
+        <section class="job-card-details" aria-label="Job details">
+            <div class="job-meta">
+                <span>⌖ {{ job.location|default:"Location not specified" }}</span>
+                <span>◷ {{ job.get_employment_type_display }}</span>
+                {% if job.salary_display %}<span>{{ job.salary_display }}</span>{% endif %}
             </div>
-        {% elif not has_pro %}
-            <span class="match-label">Pro compatibility score</span>
-        {% else %}
-            <span class="match-label">Skills match unavailable</span>
-        {% endif %}
-        <div class="row">
-            {% if has_pro and match.missing_skills %}<a class="text-link" href="{% url 'candidate_learning' %}?job={{ job.id }}">Bridge gap →</a>{% endif %}
-            <a class="button button-small" href="{% url 'job_detail' job.id %}">View job</a>
-        </div>
+            {% include "components/skill_preview.html" with label="Required Skills" skills=job.required_skill_list empty="Not specified" %}
+            {% if has_pro and match %}
+                {% if match.assessment == "Insufficient job data" %}
+                    <div class="job-skill-row"><h4>Missing</h4><p>The listing needs skill requirements before gaps can be assessed.</p></div>
+                {% else %}
+                    {% include "components/skill_preview.html" with label="Missing" skills=match.missing_skills empty="None" %}
+                {% endif %}
+            {% elif not has_pro %}
+                <p class="muted">Compatibility insights are available with Pro.</p>
+            {% endif %}
+        </section>
     </div>
+    {% if has_pro and match %}
+        <aside class="job-card-insights" aria-label="Compatibility and learning">
+            <div class="compatibility-scores">
+                {% include "components/compatibility_score.html" with label="Skill Compatibility" score=match.score %}
+                {% include "components/compatibility_score.html" with label="Predicted Job Fit" score=match.score_breakdown.ai_match.earned %}
+            </div>
+        </aside>
+    {% endif %}
 </article>

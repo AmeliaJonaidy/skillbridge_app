@@ -239,7 +239,7 @@ th {
     width:40px;
     height:40px;
     flex-shrink:0;
-    transition:width .2s ease;
+    transition:none;
 }
 .brand-logo-sidebar .brand-logo-image {
     width:120px;
@@ -1528,7 +1528,7 @@ button.primary {
         display: inline;
     }
 
-    body.sidebar-expanded .sidebar-collapse svg {
+    body:not(.sidebar-expanded) .sidebar-collapse svg {
         transform: rotate(180deg);
     }
 }

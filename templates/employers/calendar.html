@@ -32,16 +32,16 @@
         <input type="hidden" name="interview_id" data-interview-id-field>
         <label class="field" data-application-field>Candidate and role<select name="application_id"><option value="">Choose an applicant</option>{% for application in applications %}<option value="{{ application.id }}">{{ application.candidate.username }} · {{ application.job.title }}</option>{% endfor %}</select></label>
         <div data-create-only>
-            <label class="field">{{ form.meeting_url.label }}{{ form.meeting_url }}{{ form.meeting_url.errors }}</label>
-            <label class="field">{{ form.calcom_event_url.label }}{{ form.calcom_event_url }}{{ form.calcom_event_url.errors }}</label>
+            <label class="field">{% include "components/field_label.html" with field=form.meeting_url %}{{ form.meeting_url }}{{ form.meeting_url.errors }}</label>
+            <label class="field">{% include "components/field_label.html" with field=form.calcom_event_url %}{{ form.calcom_event_url }}{{ form.calcom_event_url.errors }}</label>
         </div>
         <div class="interview-notes-field" data-notes-section>
-            <label class="field">{{ form.notes.label }}{{ form.notes }}{{ form.notes.errors }}</label>
+            <label class="field">{% include "components/field_label.html" with field=form.notes %}{{ form.notes }}{{ form.notes.errors }}</label>
         </div>
         <button class="button" type="button" data-toggle-reschedule>Reschedule interview</button>
         <div class="interview-reschedule-fields" data-reschedule-fields hidden>
-            <label class="field">{{ form.scheduled_start.label }}{{ form.scheduled_start }}{{ form.scheduled_start.errors }}</label>
-            <label class="field">{{ form.scheduled_end.label }}{{ form.scheduled_end }}{{ form.scheduled_end.errors }}</label>
+            <label class="field">{% include "components/field_label.html" with field=form.scheduled_start %}{{ form.scheduled_start }}{{ form.scheduled_start.errors }}</label>
+            <label class="field">{% include "components/field_label.html" with field=form.scheduled_end %}{{ form.scheduled_end }}{{ form.scheduled_end.errors }}</label>
         </div>
         <div class="row between"><button class="button" type="button" data-close-interview>Cancel</button><button class="primary" type="submit" data-submit-interview>Schedule interview</button></div>
     </form>

@@ -5,6 +5,11 @@ from jobs.models import Job
 
 
 class TailoredResume(models.Model):
+    @property
+    def clean_content(self):
+        from .content import clean_resume_content
+        return clean_resume_content(self.content)
+
     candidate = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

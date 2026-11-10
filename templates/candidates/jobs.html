@@ -11,8 +11,8 @@
 </div>
 
 {% if not saved_page %}
-<section class="card search-panel">
-    <form class="filterbar" method="get">
+<section class="card search-panel job-search-panel">
+    <form class="filterbar{% if has_pro %} job-filters-with-sort{% endif %}" method="get">
         <label class="field">
             Search jobs
             {{ form.q }}
@@ -29,14 +29,19 @@
             Industry
             {{ form.industry }}
         </label>
+        {% if has_pro %}
+        <label class="field">Sort by<select name="sort" onchange="this.form.requestSubmit()"><option value="newest"{% if sort != 'match' %} selected{% endif %}>Newest first</option><option value="match"{% if sort == 'match' %} selected{% endif %}>Highest skill compatibility</option></select></label>
+        {% endif %}
         <button class="primary" type="submit">Search</button>
     </form>
 </section>
 {% endif %}
 
-<div class="job-list">
+{% if has_pro and sort == 'match' %}<p class="job-sort-note">Sorted by skill compatibility. Equal scores are ordered newest first.</p>{% endif %}
+<section class="card job-results-panel" aria-label="Available jobs">
+<div class="job-list"{% if saved_page %} data-saved-job-list{% endif %}>
     {% for card in job_cards %}
-        {% include "components/job_card.html" with job=card.job match=card.match is_saved=card.is_saved has_pro=has_pro %}
+        {% include "components/job_card.html" with job=card.job match=card.match is_saved=card.is_saved has_applied=card.has_applied has_pro=has_pro %}
     {% empty %}
         <div class="card">
             <h2>No jobs found</h2>
@@ -44,4 +49,5 @@
         </div>
     {% endfor %}
 </div>
+</section>
 {% endblock %}

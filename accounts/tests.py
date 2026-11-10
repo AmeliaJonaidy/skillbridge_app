@@ -384,7 +384,7 @@ class AccountOnboardingTests(TestCase):
         self.assertEqual(payment.status, "past_due")
         self.assertEqual(payment.metadata["subscription_status"], "past_due")
 
-    def test_referral_signup_gives_both_users_seven_days_of_pro(self):
+    def test_legacy_referral_signup_does_not_grant_pro(self):
         referrer = self._create_user("referrer")
         referrer_profile = UserProfile.objects.create(user=referrer, role="candidate")
 
@@ -401,17 +401,14 @@ class AccountOnboardingTests(TestCase):
         )
 
         self.assertRedirects(response, reverse("onboarding"))
-        referral = Referral.objects.get(referrer=referrer)
+        self.assertFalse(Referral.objects.filter(referrer=referrer).exists())
         referrer_profile.refresh_from_db()
-        referred_profile = UserProfile.objects.get(user=referral.referred_user)
-        self.assertEqual(referral.status, "rewarded")
-        self.assertTrue(referrer_profile.is_pro)
-        self.assertTrue(referred_profile.is_pro)
-        self.assertIsNotNone(referrer_profile.plan_expires_at)
-        self.assertIsNotNone(referred_profile.plan_expires_at)
+        referred_profile = UserProfile.objects.get(user__username="referred_friend")
+        self.assertFalse(referrer_profile.is_pro)
+        self.assertFalse(referred_profile.is_pro)
 
     @patch("accounts.referral_services.extend_stripe_subscription_trial")
-    def test_paid_referrer_has_stripe_billing_delayed(self, extend_trial):
+    def test_legacy_referral_does_not_change_stripe_billing(self, extend_trial):
         extend_trial.return_value = {"trial_end": 1234567890}
         referrer = self._create_user("paid_referrer")
         referrer_profile = UserProfile.objects.create(user=referrer, role="candidate", plan="pro")
@@ -436,9 +433,8 @@ class AccountOnboardingTests(TestCase):
             },
         )
 
-        extend_trial.assert_called_once()
-        self.assertEqual(extend_trial.call_args.args[0], "sub_referral_test")
-        self.assertEqual(Referral.objects.get(referrer=referrer).status, "rewarded")
+        extend_trial.assert_not_called()
+        self.assertFalse(Referral.objects.filter(referrer=referrer).exists())
 
     def test_signup_can_skip_onboarding_and_reach_dashboard(self):
         response = self.client.post(
