@@ -15,14 +15,22 @@ from django.conf import settings
 import joblib
 import os
 from django.core.wsgi import get_wsgi_application
+from django.core.management import call_command
 
 
-application = get_wsgi_application()
-app = application  # Required by Vercel's serverless Python launcher
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'skillbridgeproj.settings')
 
+application = get_wsgi_application()
+app = application  # Required for Vercel Python runtime
 
+# Run migrations automatically when Vercel initializes the serverless container
+try:
+    call_command('migrate', interactive=False)
+except Exception as e:
+    print(f"Migration warning on startup: {e}")
+    
+    
 def load_ml_model():
     model_path = os.path.join(settings.BASE_DIR, 'matching', 'my_model.joblib')
     return joblib.load(model_path)
