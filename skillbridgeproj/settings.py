@@ -64,8 +64,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+ALLOWED_HOSTS = ['*']
+
 CSRF_TRUSTED_ORIGINS = [
     'https://*.vercel.app',
+    'https://skillbridge-six-delta.vercel.app',
 ]
 
 ROOT_URLCONF = 'skillbridgeproj.urls'
