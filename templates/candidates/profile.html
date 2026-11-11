@@ -24,12 +24,6 @@
     <a href="#profile-connections">Connections</a>
 </nav>
 
-{% if messages %}
-    {% for message in messages %}
-        <div class="card profile-message">{{ message }}</div>
-    {% endfor %}
-{% endif %}
-
 <section class="content-columns profile-layout">
     <form class="profile-form" method="post" enctype="multipart/form-data">
         {% csrf_token %}

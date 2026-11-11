@@ -12,6 +12,7 @@ class FreeChoiceMultipleField(forms.MultipleChoiceField):
 
 
 class JobForm(forms.ModelForm):
+<<<<<<< HEAD
     evidence_types = ("Projects", "Internship", "Self-proclaimed skills")
     skill_catalog = list(dict.fromkeys([
         *KNOWN_SKILLS,
@@ -80,6 +81,21 @@ class JobForm(forms.ModelForm):
             self.initial["evidence_rank_order"] = ",".join(existing_order or self.evidence_types)
             self.initial["required_skill_choices"] = self.instance.required_skill_list
             self.initial["preferred_skill_choices"] = self.instance.preferred_skill_list
+=======
+    skill_weights = forms.CharField(
+        required=False,
+        label="Skill weights",
+        help_text="Optional: one skill per line, for example Creativity: 60 and UI/UX: 40. Weights must total 100.",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Creativity: 60\nUI/UX: 40"}),
+    )
+    evidence_weights = forms.CharField(
+        required=False,
+        label="Evidence weights",
+        help_text="Optional: Projects, internship/work experience, and self-proclaimed skills. Weights must total 100.",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Projects: 40\nInternship: 50\nSelf-proclaimed skills: 10"}),
+    )
+
+>>>>>>> origin/model
     class Meta:
         model = Job
         fields = [
@@ -119,6 +135,7 @@ class JobForm(forms.ModelForm):
         salary_max = cleaned.get("salary_max")
         if salary_min is not None and salary_max is not None and salary_min > salary_max:
             self.add_error("salary_max", "Maximum salary must be greater than or equal to minimum salary.")
+<<<<<<< HEAD
         raw_order = [item.strip() for item in cleaned.get("evidence_rank_order", "").split(",") if item.strip()]
         canonical = {item.casefold(): item for item in self.evidence_types}
         order = []
@@ -149,7 +166,52 @@ class JobForm(forms.ModelForm):
                     merged.append(standard)
                     seen.add(key)
             cleaned[model_name] = ", ".join(merged)
+=======
+        cleaned["skill_weights"] = self._parse_weights(cleaned.get("skill_weights"), "skill")
+        cleaned["evidence_weights"] = self._parse_weights(cleaned.get("evidence_weights"), "evidence")
+>>>>>>> origin/model
         return cleaned
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.initial["skill_weights"] = self._format_weights(self.instance.skill_weights)
+            self.initial["evidence_weights"] = self._format_weights(self.instance.evidence_weights)
+
+    def _parse_weights(self, value, label):
+        if not value:
+            return {}
+        weights = {}
+        for line in value.splitlines():
+            if not line.strip():
+                continue
+            name, separator, raw_weight = line.partition(":")
+            if not separator or not name.strip():
+                self.add_error(
+                    f"{label}_weights",
+                    "Use one entry per line in the format Name: percentage.",
+                )
+                continue
+            try:
+                weight = float(raw_weight.strip().rstrip("%"))
+            except ValueError:
+                self.add_error(f"{label}_weights", f"{name.strip()} must have a numeric percentage.")
+                continue
+            if weight < 0:
+                self.add_error(f"{label}_weights", f"{name.strip()} cannot have a negative percentage.")
+                continue
+            key = name.strip()
+            if key.casefold() in {item.casefold() for item in weights}:
+                self.add_error(f"{label}_weights", f"{key} is listed more than once.")
+                continue
+            weights[key] = weight
+        if weights and round(sum(weights.values()), 2) != 100:
+            self.add_error(f"{label}_weights", "Weights must total exactly 100%.")
+        return {key: value for key, value in weights.items()}
+
+    @staticmethod
+    def _format_weights(weights):
+        return "\n".join(f"{key}: {value:g}" for key, value in (weights or {}).items())
 
 
 class JobFilterForm(forms.Form):

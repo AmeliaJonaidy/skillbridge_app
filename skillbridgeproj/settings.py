@@ -33,7 +33,7 @@ SECRET_KEY = 'django-insecure-_kyxt@_z@@*esr*r(-+7#3@4_#r@j=cb3t8c$gk30r73u9%=%y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver", "vercel.app"]
 
 
 # Application definition
@@ -120,7 +120,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Singapore'
 
 USE_I18N = True
 
@@ -147,6 +147,9 @@ STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID', '')
 PRO_PLAN_AMOUNT_CENTS = int(os.getenv('PRO_PLAN_AMOUNT_CENTS', '900'))
 PRO_PLAN_CURRENCY = os.getenv('PRO_PLAN_CURRENCY', 'sgd')
+JOB_REFERENCE_CSV = Path(os.getenv('JOB_REFERENCE_CSV', BASE_DIR / 'data' / 'all_job_post.csv'))
+ML_SCREENING_CSV = Path(os.getenv('ML_SCREENING_CSV', BASE_DIR / 'data' / 'AI_Resume_Screening.csv'))
+ML_MODEL_PATH = Path(os.getenv('ML_MODEL_PATH', BASE_DIR / 'data' / 'ml_models' / 'suitability_model.joblib'))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

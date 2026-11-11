@@ -10,12 +10,15 @@
     <a class="button small" href="{% url 'candidate_profile' %}">Update interests</a>
 </div>
 
+<<<<<<< HEAD
 {% if messages %}
     {% for message in messages %}
         <div class="card profile-message{% if message.tags %} {{ message.tags }}{% endif %}" role="status">{{ message }}</div>
     {% endfor %}
 {% endif %}
 
+=======
+>>>>>>> origin/model
 <section class="card career-readiness-panel">
     {% for goal in career_progress %}
         <details class="career-progress-item direction-development-card" {% if goal.pending_count %}open{% endif %}>

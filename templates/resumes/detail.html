@@ -13,6 +13,7 @@
 {% for message in messages %}<p class="card profile-message" role="status">{{ message }}</p>{% endfor %}
 <div class="resume-review-layout">
 <article class="card resume-paper">
+<<<<<<< HEAD
     <h2>Edit resume</h2>
     <p class="muted">Save your changes to refresh the underlined review and job requirements.</p>
     {% if tailored_resume.is_main %}<p class="pill progress-green">Main resume</p>{% endif %}
@@ -30,6 +31,33 @@
         {% csrf_token %}
         <button class="primary button" type="submit">Use as main resume</button>
     </form>
+=======
+    <form method="post" class="stack">
+        {% csrf_token %}
+        <label class="field">
+            Draft title
+            {{ form.title }}
+            {{ form.title.errors }}
+        </label>
+        <label class="field">
+            Resume content
+            {{ form.content }}
+            {{ form.content.errors }}
+        </label>
+        <div class="static-page-actions">
+            <button class="button" type="submit" name="action" value="save">Save draft</button>
+            {% if not tailored_resume.approved_at %}
+                <button class="primary" type="submit" name="action" value="approve">Save and approve for submission</button>
+            {% else %}
+                <span class="pill progress-green">Approved for submission</span>
+            {% endif %}
+            <a class="button" href="{% url 'job_detail' tailored_resume.job.id %}">Back to job</a>
+        </div>
+    </form>
+    <p class="muted">This draft uses your own profile and resume evidence. It keeps a consistent structure while contextualising the evidence for this role. Saving it does not overwrite your original uploaded resume.</p>
+    {% if not tailored_resume.approved_at %}
+        <p class="muted">Review every claim before approving. Only an approved draft can be submitted with your application.</p>
+>>>>>>> origin/model
     {% endif %}
 </article>
 <aside class="resume-review-sidebar">
