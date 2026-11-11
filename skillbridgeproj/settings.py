@@ -9,9 +9,25 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
 import os
 from pathlib import Path
+from django.conf import settings
+import joblib
+import os
+from django.core.wsgi import get_wsgi_application
+
+
+application = get_wsgi_application()
+app = application  # Required by Vercel's serverless Python launcher
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'skillbridgeproj.settings')
+
+
+def load_ml_model():
+    model_path = os.path.join(settings.BASE_DIR, 'matching', 'my_model.joblib')
+    return joblib.load(model_path)
+
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,12 +44,73 @@ except ImportError:
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-_kyxt@_z@@*esr*r(-+7#3@4_#r@j=cb3t8c$gk30r73u9%=%y'
+SECRET_KEY = os.getenv(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-local-development-only',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver", ".vercel.app"]
+# ALLOWED_HOSTS = [
+#     host.strip()
+#     for host in os.getenv(
+#         'DJANGO_ALLOWED_HOSTS',
+#         'localhost,127.0.0.1,testserver,skillbridge-six-delta.vercel.app',
+#     ).split(',')
+#     if host.strip()
+# ]
+
+# ALLOWED_HOSTS = ['*', '.vercel.app', 'skillbridge-six-delta.vercel.app', 'localhost', '127.0.0.1']
+
+
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Redirect SQLite to writeable /tmp directory when running on Vercel
+if os.getenv('VERCEL'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': '/tmp/db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+    
+    
+# Default hosts allowed for local dev and Vercel deployments
+DEFAULT_HOSTS = [
+    '*',
+    '.vercel.app',
+    'skillbridge-six-delta.vercel.app',
+    'localhost',
+    '127.0.0.1',
+    'testserver',
+]
+
+# Read extra/custom hosts from environment variable if provided
+env_hosts = [
+    host.strip()
+    for host in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',')
+    if host.strip()
+]
+
+# Combine environment hosts with default hosts (removing duplicates)
+ALLOWED_HOSTS = list(set(DEFAULT_HOSTS + env_hosts))
+
+
+
+
+
+
+
 
 
 # Application definition
@@ -63,8 +140,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
-ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = [
     'https://*.vercel.app',
