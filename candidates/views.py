@@ -12,21 +12,15 @@ from accounts.models import UserProfile
 from accounts.notification_helpers import notify
 from accounts.choices import (
     CAREER_CHOICES,
-<<<<<<< HEAD
     CAREER_INTERESTS_BY_AREA,
-    CAREER_INTEREST_CHOICES,
-    PHONE_COUNTRY_CODE_CHOICES,
-    SPECIALISATION_CHOICES,
-    SPECIALISATIONS_BY_AREA,
-    choices_for_career,
-=======
     CAREER_INTEREST_CHOICES,
     CAREER_STAGE_CHOICES,
     EDUCATION_CHOICES,
     INSTITUTION_CHOICES,
     PHONE_COUNTRY_CODE_CHOICES,
     SPECIALISATION_CHOICES,
->>>>>>> origin/model
+    SPECIALISATIONS_BY_AREA,
+    choices_for_career,
 )
 from accounts.calendar import build_month_calendar
 from accounts.decorators import candidate_required
@@ -42,19 +36,10 @@ from .forms import CandidateProfileForm
 from .career_paths import CAREER_FIT_PROFILES, CAREER_PATHS, _candidate_source, _skill_matches, career_progress, resume_fit_matrix
 from .certificate_verification import verify_certificate
 from .models import CandidateMilestone, Certification
-<<<<<<< HEAD
 from .resume_parser import assess_resume_suitability, extract_resume_text, review_resume
-from .services import add_verified_certificate_to_resume, autofill_from_resume, sync_candidate_profile
+from .services import add_verified_certificate_to_resume, autofill_from_resume, merge_completed_certifications, sync_candidate_profile
 from resumes.models import TailoredResume
 from resumes.services import build_interest_tailored_resume
-=======
-from .resume_parser import extract_resume_text, review_resume
-from .services import (
-    autofill_from_resume,
-    merge_completed_certifications,
-    sync_candidate_profile,
-)
->>>>>>> origin/model
 
 CERTIFICATE_FILE_EXTENSIONS = {".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"}
 MAX_CERTIFICATE_FILE_SIZE = 10 * 1024 * 1024
@@ -238,11 +223,8 @@ def jobs(request):
             job_queryset = job_queryset.filter(industry__icontains=industry)
 
     saved_ids = set(SavedJob.objects.filter(candidate=request.user).values_list("job_id", flat=True))
-<<<<<<< HEAD
     applied_ids = set(JobApplication.objects.filter(candidate=request.user).values_list("job_id", flat=True))
-=======
     has_pro = _current_profile(request).is_pro
->>>>>>> origin/model
     job_cards = []
     for job in job_queryset:
         match = get_or_update_match(request.user, job) if has_pro else None
@@ -321,7 +303,6 @@ def profile(request):
         profile.profile_data = data
         profile.save(update_fields=changed_fields)
         sync_candidate_profile(request.user, data)
-<<<<<<< HEAD
         notify(request.user, "Profile updated", "Your SkillBridge profile has been updated successfully.", "profile")
         profile.refresh_from_db()
         form = CandidateProfileForm(initial=_profile_initial(request, profile))
@@ -345,11 +326,6 @@ def profile(request):
         "selected_interests": selected_interests,
         "guided_resume": request.GET.get("guided") == "1",
     })
-=======
-        messages.success(request, "Your profile has been updated.")
-        return redirect("candidate_profile")
-    return render(request, "candidates/profile.html", {**_context(request), "form": form, "profile": profile, "completion_percent": _completion_percent(profile)})
->>>>>>> origin/model
 
 
 @candidate_required
@@ -409,7 +385,6 @@ def resume(request):
     if profile and profile.resume:
         with profile.resume.open("rb") as resume_file:
             feedback = review_resume(extract_resume_text(resume_file))
-<<<<<<< HEAD
     return render(request, "candidates/resume.html", _context(
         request,
         profile=profile,
@@ -467,9 +442,6 @@ def tailor_resume_for_interest(request, interest):
     return render(request, "candidates/tailor_interest.html", _context(
         request, interest=interest, path=path, skill_questions=skill_questions, errors=[],
     ))
-=======
-    return render(request, "candidates/resume.html", _context(request, profile=profile, profile_data=resume_data, feedback=feedback))
->>>>>>> origin/model
 
 
 @candidate_required
@@ -675,7 +647,6 @@ def learning(request):
                 if result.status == "completed":
                     add_verified_certificate_to_resume(request.user, milestone)
 
-<<<<<<< HEAD
                 response_message = (
                     f"{course_title} was verified automatically with {certification.provider}."
                     if result.status == "completed"
@@ -692,52 +663,6 @@ def learning(request):
                         "course_title": course_title,
                     })
                 return redirect(f"{reverse('candidate_learning')}?direction={career_key}#verification-status")
-=======
-                # Keep the legacy profile fields so existing roadmap cards
-                # continue to render as completed after this migration.
-                data = dict(profile.profile_data or {})
-                completed_courses = list(data.get("completed_career_courses", []))
-                if course_title not in completed_courses:
-                    completed_courses.append(course_title)
-                completed_skills = list(data.get("completed_career_skills", []))
-                for skill in course.get("covers", []):
-                    if skill not in completed_skills:
-                        completed_skills.append(skill)
-                data["completed_career_courses"] = completed_courses
-                data["completed_career_skills"] = completed_skills
-                completed_certificates = list(data.get("completed_career_certificates", []))
-                certificate_record = {
-                    "title": course_title,
-                    "provider": course["provider"],
-                    "certificate_id": certificate_id,
-                }
-                completed_certificates = [
-                    item for item in completed_certificates
-                    if item.get("title") != course_title
-                ]
-                completed_certificates.append(certificate_record)
-                data["completed_career_certificates"] = completed_certificates
-                certification_lines = [
-                    line.strip()
-                    for line in str(data.get("certifications", "") or "").splitlines()
-                    if line.strip()
-                ]
-                certification_label = course_title
-                if certificate_id:
-                    certification_label = f"{course_title} (Certificate ID: {certificate_id})"
-                certification_lines = [
-                    line for line in certification_lines
-                    if not line.startswith(f"{course_title} (Certificate ID:")
-                    and line != course_title
-                ]
-                certification_lines.append(certification_label)
-                data["certifications"] = "\n".join(certification_lines)
-                profile.profile_data = data
-                profile.save(update_fields=["profile_data"])
-                sync_candidate_profile(request.user, data)
-                messages.success(request, f"{course_title} was validated and marked completed. Your readiness bars have been updated.")
-            return redirect(request.get_full_path())
->>>>>>> origin/model
 
         certification = get_object_or_404(Certification, pk=request.POST.get("certification_id"))
         milestone, _ = CandidateMilestone.objects.get_or_create(candidate=request.user, certification=certification)
@@ -828,10 +753,7 @@ def saved_jobs(request):
             saved.delete()
         return redirect("candidate_saved_jobs")
     saved = SavedJob.objects.filter(candidate=request.user).select_related("job__company")
-<<<<<<< HEAD
     applied_ids = set(JobApplication.objects.filter(candidate=request.user).values_list("job_id", flat=True))
-    return render(request, "candidates/jobs.html", _context(request, form=JobFilterForm(), job_cards=[{"job": item.job, "match": get_or_update_match(request.user, item.job), "is_saved": True, "has_applied": item.job_id in applied_ids} for item in saved], saved_page=True))
-=======
     has_pro = _current_profile(request).is_pro
     job_cards = []
     for item in saved:
@@ -846,9 +768,9 @@ def saved_jobs(request):
                 ml_prediction["score"] if ml_prediction else None,
             ),
             "is_saved": True,
+            "has_applied": item.job_id in applied_ids,
         })
     return render(request, "candidates/jobs.html", _context(request, form=JobFilterForm(), job_cards=job_cards, saved_page=True))
->>>>>>> origin/model
 
 
 def dashboard_context(request):

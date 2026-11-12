@@ -366,7 +366,10 @@ class CareerProgressTests(TestCase):
         self.assertNotIn("Python", progress["missing"])
 
     def test_completed_data_analytics_certificate_covers_foundations(self):
-        user = User.objects.create_user(username="data-analytics-complete", ******)
+        user = User.objects.create_user(
+            username="data-analytics-complete",
+            password="test-password",
+        )
         UserProfile.objects.create(
             user=user,
             role="candidate",

@@ -22,14 +22,11 @@ from applications.forms import ApplicationStatusForm, InterviewForm
 from applications.models import Interview, JobApplication
 from jobs.forms import JobForm
 from jobs.models import Job
-<<<<<<< HEAD
 from jobs.imports import (IMPORT_FIELDS, REQUIRED_FIELDS, import_instructions, read_import,
                           template_example, template_headers, validate_import)
-=======
 from jobs.reference_catalog import suggest_skills_for_title
 from matching.ml_model import predict_suitability
 from matching.services import calculate_overall_suitability
->>>>>>> origin/model
 
 from .forms import CompanyForm, CompanyLookupForm
 from .models import Company, RecruiterProfile
@@ -320,11 +317,7 @@ def applicants(request):
             return redirect("recruiter_applicants")
     else:
         status_form = ApplicationStatusForm()
-<<<<<<< HEAD
-    return render(request, "employers/applicants.html", _context(request, applications=applications, jobs=jobs, status_form=status_form, sort=sort))
-=======
-    return render(request, "employers/applicants.html", _context(request, applications=applications, jobs=jobs, status_form=status_form, has_pro=has_pro))
->>>>>>> origin/model
+    return render(request, "employers/applicants.html", _context(request, applications=applications, jobs=jobs, status_form=status_form, sort=sort, has_pro=has_pro))
 
 
 @recruiter_required

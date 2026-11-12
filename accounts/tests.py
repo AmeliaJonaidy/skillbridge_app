@@ -11,12 +11,9 @@ from django.utils import timezone
 from datetime import timedelta
 
 from .forms import SignupForm
-<<<<<<< HEAD
 from .models import Payment, Referral, UserProfile
 from .payment_services import set_stripe_entitlement
-=======
-from .models import Notification, UserProfile
->>>>>>> origin/model
+from .models import Notification
 
 
 class AccountOnboardingTests(TestCase):
@@ -383,7 +380,6 @@ class AccountOnboardingTests(TestCase):
 
         self.assertTrue(profile.is_pro)
 
-<<<<<<< HEAD
     def test_failed_stripe_payment_revokes_pro_access(self):
         user = self._create_user("past_due_user")
         profile = UserProfile.objects.create(user=user, role="candidate", plan="pro")
@@ -460,7 +456,6 @@ class AccountOnboardingTests(TestCase):
 
         extend_trial.assert_not_called()
         self.assertFalse(Referral.objects.filter(referrer=referrer).exists())
-=======
     def test_trial_pro_can_be_cancelled_without_stripe_subscription(self):
         user = self._create_user("trial_plan")
         started_at = timezone.now()
@@ -480,7 +475,6 @@ class AccountOnboardingTests(TestCase):
         self.assertEqual(profile.plan, "free")
         self.assertIsNone(profile.plan_expires_at)
         self.assertIsNotNone(profile.trial_started_at)
->>>>>>> origin/model
 
     def test_signup_can_skip_onboarding_and_reach_dashboard(self):
         response = self.client.post(

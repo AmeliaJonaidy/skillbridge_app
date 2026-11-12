@@ -289,7 +289,6 @@ def calculate_match(candidate, job):
         }
         return 0, [], [], breakdown, "Insufficient job data"
 
-<<<<<<< HEAD
     all_skills = _dedupe_skills(required_skills + preferred_skills)
     skill_weights = _configured_weights(
         job.skill_weights,
@@ -310,42 +309,6 @@ def calculate_match(candidate, job):
         for label, weight in skill_weights.items()
     }
     evidence_points, evidence_reasons = _evidence_score(data, resume_text, job.evidence_weights)
-=======
-    if weighted_skill_match:
-        alignment_points = _alignment_points(data, job)
-        experience_points = _experience_points(data, job)
-        evidence_points = _evidence_points(candidate, data)
-        skill_points = round(weighted_skill_match["score"] * 0.75)
-        breakdown = {
-            "weighted_skills": {
-                "earned": skill_points,
-                "max": 75,
-                "details": weighted_skill_match["details"],
-                "evidence_weights": weighted_skill_match["evidence_weights"],
-            },
-            "career_alignment": {"earned": alignment_points, "max": 10},
-            "experience_level": {"earned": experience_points, "max": 10},
-            "profile_evidence": {"earned": evidence_points, "max": 5},
-        }
-        score = sum(component["earned"] for component in breakdown.values())
-        return (
-            score,
-            sorted(weighted_skill_match["matched"]),
-            sorted(weighted_skill_match["missing"]),
-            breakdown,
-            _assessment(score),
-        )
-
-    required_normalised, required_matched = _coverage(candidate_skills, required_skills, resume_text)
-    preferred_normalised, preferred_matched = _coverage(candidate_skills, preferred_skills, resume_text)
-    required_points = round(60 * len(required_matched) / len(required_normalised)) if required_normalised else 0
-    # Preferred skills are optional. If the recruiter leaves that field blank,
-    # do not penalise the candidate for an omitted optional criterion.
-    preferred_points = round(15 * len(preferred_matched) / len(preferred_normalised)) if preferred_normalised else 15
-    alignment_points = _alignment_points(data, job)
-    experience_points = _experience_points(data, job)
-    evidence_points = _evidence_points(candidate, data)
->>>>>>> origin/model
     breakdown = {
         "skill_match": {"earned": skill_points, "max": 70, "reason": "Weighted recruiter skill coverage.", "details": skill_reasons},
         "evidence_match": {"earned": evidence_points, "max": 30, "reason": "Weighted evidence from projects, internships, and self-declared skills.", "details": evidence_reasons},

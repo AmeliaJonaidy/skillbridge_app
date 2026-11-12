@@ -112,7 +112,6 @@ def detail(request, job_id):
                 application = form.save(commit=False)
                 application.candidate = request.user
                 application.job = job
-<<<<<<< HEAD
                 application.match_score = match.score
                 application.matched_skills = match.matched_skills
                 application.missing_skills = match.missing_skills
@@ -126,16 +125,6 @@ def detail(request, job_id):
                     main_resume.clean_content
                     if main_resume
                     else build_tailored_resume(request.user, job)
-=======
-                if match:
-                    application.match_score = match.score
-                    application.matched_skills = match.matched_skills
-                    application.missing_skills = match.missing_skills
-                    application.match_breakdown = match.score_breakdown
-                    application.match_assessment = match.assessment
-                application.tailored_resume = (
-                    tailored_draft.content
->>>>>>> origin/model
                 )
                 application.save()
                 notify(

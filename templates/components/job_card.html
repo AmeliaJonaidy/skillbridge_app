@@ -22,36 +22,12 @@
         </form>
     </div>
 
-<<<<<<< HEAD
     <div class="job-card-content">
         <section class="job-card-details" aria-label="Job details">
             <div class="job-meta">
                 <span>⌖ {{ job.location|default:"Location not specified" }}</span>
                 <span>◷ {{ job.get_employment_type_display }}</span>
                 {% if job.salary_display %}<span>{{ job.salary_display }}</span>{% endif %}
-=======
-    <div class="job-meta">
-        <span>⌖ {{ job.location|default:"Location not specified" }}</span>
-        <span>◷ {{ job.get_employment_type_display }}</span>
-        {% if job.salary_display %}<span>{{ job.salary_display }}</span>{% endif %}
-    </div>
-
-    <div class="tag-list">
-        {% for skill in job.required_skill_list|slice:":4" %}
-            <span class="tag">{{ skill }}</span>
-        {% empty %}
-            <span class="tag">Skills to be confirmed</span>
-        {% endfor %}
-    </div>
-
-    <div class="job-card-footer">
-        {% if has_pro and match %}
-            <div>
-                <span class="match-badge {% if overall_score <= 40 %}match-badge-low{% elif overall_score <= 70 %}match-badge-medium{% else %}match-badge-high{% endif %}">Overall suitability: {{ overall_score }}%</span>
-                <span class="match-label">{{ match.assessment }}</span>
-                {% if ml_prediction %}<span class="match-label">Based on Skill Match (70%) and historical ML signal (30%)</span>{% endif %}
-                {% if match.missing_skills %}<p class="muted">Gap: {{ match.missing_skills|join:", " }}</p>{% endif %}
->>>>>>> origin/model
             </div>
             {% include "components/skill_preview.html" with label="Required Skills" skills=job.required_skill_list empty="Not specified" %}
             {% if has_pro and match %}

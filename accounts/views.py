@@ -462,7 +462,7 @@ def plans(request):
             "role": profile.role,
             "profile": profile,
             "has_pro": profile.is_pro,
-            "trial_available": not profile.trial_started_at and not profile.is_pro,
+            "trial_available": not (profile.pro_trial_started_at or profile.trial_started_at) and not profile.is_pro,
             "payments": Payment.objects.filter(user=request.user)[:5],
             "stripe_enabled": settings.STRIPE_SECRET_KEY.startswith("sk_test_"),
             "pro_plan_price": f"{settings.PRO_PLAN_CURRENCY.upper()} {settings.PRO_PLAN_AMOUNT_CENTS / 100:.2f}",
@@ -473,7 +473,6 @@ def plans(request):
 @login_required
 @require_POST
 def start_pro_trial(request):
-<<<<<<< HEAD
     now = timezone.now()
     with transaction.atomic():
         profile = _profile(request)
@@ -482,25 +481,17 @@ def start_pro_trial(request):
         else:
             granted = UserProfile.objects.filter(
                 pk=profile.pk, pro_trial_started_at__isnull=True,
-            ).update(plan="pro", plan_expires_at=now + timedelta(days=7), pro_trial_started_at=now)
+            ).update(
+                plan="pro",
+                plan_expires_at=now + timedelta(days=7),
+                pro_trial_started_at=now,
+                trial_started_at=now,
+            )
             if granted:
                 notify(request.user, "Pro trial started", "Your seven-day Pro trial is active. It ends automatically; no payment details are needed.", "account")
                 messages.success(request, "Your seven-day Pro trial is now active.")
             else:
                 messages.info(request, "You have already used your seven-day Pro trial.")
-=======
-    profile = _profile(request)
-    if profile.is_pro:
-        messages.info(request, "Your Pro access is already active.")
-    elif profile.trial_started_at:
-        messages.error(request, "Your 7-day Pro trial has already been used.")
-    else:
-        profile.plan = "pro"
-        profile.trial_started_at = timezone.now()
-        profile.plan_expires_at = profile.trial_started_at + timedelta(days=7)
-        profile.save(update_fields=["plan", "trial_started_at", "plan_expires_at"])
-        messages.success(request, "Your 7-day Pro trial is now active.")
->>>>>>> origin/model
     return redirect("plans")
 
 
@@ -551,23 +542,13 @@ def cancel_pro(request):
         None,
     )
     if not payment:
-<<<<<<< HEAD
-        if profile.pro_trial_started_at and profile.plan_expires_at:
+        if (profile.pro_trial_started_at or profile.trial_started_at) and profile.plan_expires_at:
             profile.plan = "free"
             profile.plan_expires_at = None
             profile.save(update_fields=["plan", "plan_expires_at"])
             messages.success(request, "Your Pro trial has ended. Your account is now on Free.")
         else:
             messages.error(request, "No active Stripe subscription was found for this account.")
-=======
-        if profile.trial_started_at:
-            profile.plan = "free"
-            profile.plan_expires_at = None
-            profile.save(update_fields=["plan", "plan_expires_at"])
-            messages.success(request, "Your Pro trial has been cancelled. Your account is now on SkillBridge Free.")
-            return redirect("plans")
-        messages.error(request, "No active Stripe subscription was found for this account.")
->>>>>>> origin/model
         return redirect("plans")
 
     try:

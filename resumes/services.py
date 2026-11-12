@@ -239,10 +239,6 @@ def build_tailored_resume(candidate, job):
         )
 
     all_skills = _dedupe(verified_job_skills + candidate_skills)
-<<<<<<< HEAD
-    experience_lines = _dedupe(_clean_lines(data.get("experience")) + prioritised_evidence)
-    project_lines = _dedupe(_clean_lines(data.get("portfolio")) + focus_evidence)
-=======
     experience_lines = _dedupe(
         [_contextualize_line(line, job) for line in _clean_lines(data.get("experience"))]
         + [_contextualize_line(line, job) for line in prioritised_evidence]
@@ -251,7 +247,6 @@ def build_tailored_resume(candidate, job):
         [_contextualize_line(line, job) for line in _clean_lines(data.get("portfolio"))]
         + [_contextualize_line(line, job) for line in focus_evidence]
     )
->>>>>>> origin/model
 
     sections = [
         name,
@@ -265,7 +260,6 @@ def build_tailored_resume(candidate, job):
         _section("CERTIFICATIONS", data.get("certifications")),
         _section("AWARDS & ACHIEVEMENTS", data.get("awards")),
         _section("WORK AUTHORISATION", data.get("visa")),
-<<<<<<< HEAD
     ]
     return "\n\n".join(section for section in sections if section.strip())
 
@@ -304,8 +298,6 @@ def build_interest_tailored_resume(candidate, interest, skill_evidence=None):
         _section("PROJECTS & PORTFOLIO", data.get("portfolio")),
         _section("CERTIFICATIONS", data.get("certifications")),
         _section("AWARDS & ACHIEVEMENTS", data.get("awards")),
-=======
->>>>>>> origin/model
     ]
     return "\n\n".join(section for section in sections if section.strip())
 

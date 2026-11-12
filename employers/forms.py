@@ -11,14 +11,12 @@ class CompanyLookupForm(forms.Form):
 
 
 class CompanyForm(forms.ModelForm):
-<<<<<<< HEAD
     profile_photo = forms.FileField(
         label="Your profile photo",
         required=False,
         validators=[validate_profile_photo],
         widget=forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
     )
-=======
     name = forms.CharField(label="Name")
     industry = forms.ChoiceField(label="Industry", choices=[("", "Choose an industry")] + INDUSTRY_CHOICES)
     website = forms.CharField(label="Website")
@@ -30,7 +28,6 @@ class CompanyForm(forms.ModelForm):
     )
     logo_url = forms.CharField(label="Logo URL", required=False)
     description = forms.CharField(label="Description", required=False, widget=forms.Textarea(attrs={"rows": 5}))
->>>>>>> origin/model
 
     class Meta:
         model = Company
