@@ -1,4 +1,5 @@
 import csv
+import os
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -171,6 +172,10 @@ def initialise_model():
             import joblib
 
             _MODEL = joblib.load(model_path)
+        elif os.getenv("VERCEL"):
+            # Vercel's deployed application files are read-only. Train in
+            # memory instead of trying to persist an artifact under /var/task.
+            _MODEL = _train(_catalog_path())
         else:
             _MODEL = train_and_persist_model()
     return _MODEL
